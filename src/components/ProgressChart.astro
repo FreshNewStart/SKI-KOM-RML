@@ -59,8 +59,10 @@ const { projectId } = Astro.props;
 
       try {
 
+        const apiBase = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
+
         const response = await fetch(
-          `http://localhost:5000/api/stages/project/${projectId}`
+          `${apiBase}/stages/project/${projectId}`
         );
 
 

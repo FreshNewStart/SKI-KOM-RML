@@ -5,16 +5,36 @@ import StageForm from "./forms/StageForm.astro";
 import MilestoneForm from "./forms/MilestoneForm.astro";
 import ProgramRivisionForm from "./forms/ProgramRivisionForm.astro";
 import FileUploadForm from "./forms/FileUploadForm.astro";
+import { buildApiUrl, withBase } from "../lib/config";
 
 const projectId = "6aa81933b3f5dd584c234f38";
 
-const response = await fetch(
-  `http://localhost:5000/api/dashboard/overview/${projectId}`
-);
+const defaultOverview = {
+  activeActivities: 0,
+  completedActivities: 0,
+  onHoldActivities: 0,
+  notStartedActivities: 0,
+  activeStages: 0,
+  completedStages: 0,
+  onHoldStages: 0,
+  notStartedStages: 0,
+};
 
-const overview = await response.json();
+let overview = defaultOverview;
 
-console.log("DASHBOARD OVERVIEW:", overview);
+if (!import.meta.env.SSR) {
+  try {
+    const response = await fetch(
+      buildApiUrl(`/dashboard/overview/${projectId}`)
+    );
+
+    if (response.ok) {
+      overview = await response.json();
+    }
+  } catch (error) {
+    console.warn("Dashboard overview unavailable:", error);
+  }
+}
 
 const {
   activeActivities,
@@ -158,7 +178,7 @@ const {
     <div class="sidebar-footer">
 
       <a
-        href="/"
+        href={withBase("/")}
         class="btn btn-secondary sidebar-back-button"
       >
         <span class="material-symbols-rounded">
@@ -1611,7 +1631,7 @@ const {
 
     if (!auth.isAuthenticated) {
 
-      window.location.href = "/login";
+      window.location.href = withBase("/login");
 
       return false;
     }

@@ -1,3 +1,4 @@
+import { withBase } from "./config";
 
 export function getAuth() {
   const token =
@@ -34,5 +35,5 @@ export function logout() {
   sessionStorage.removeItem("user");
   sessionStorage.removeItem("organisation");
 
-  window.location.href = "/login";
+  window.location.href = withBase("/login");
 }

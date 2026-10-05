@@ -1,11 +1,13 @@
 ---
+import { API_BASE_URL } from "../../lib/config";
+
 interface Props {
   projectId: string;
 }
 
 const { projectId } = Astro.props;
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = API_BASE_URL;
 ---
 
 <div class="programme-revision-form">

@@ -489,7 +489,7 @@ const { projectId } = Astro.props;
 <script define:vars={{ projectId }}>
 
   const API_BASE =
-    "http://localhost:5000/api";
+    import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
 
 
   /*

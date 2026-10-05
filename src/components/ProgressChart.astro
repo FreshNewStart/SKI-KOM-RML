@@ -1,0 +1,960 @@
+---
+interface Props {
+  projectId: string;
+}
+
+const { projectId } = Astro.props;
+---
+
+<div class="chart-card">
+
+  <div class="chart-card-header">
+
+    <div>
+      <h3>Stage Timeline</h3>
+
+      <p>
+        Planned vs actual project schedule
+      </p>
+    </div>
+
+  </div>
+
+  <div
+    id="stageTimelineChart"
+    data-project-id={projectId}
+  ></div>
+
+</div>
+
+
+<script>
+  console.log("🔥 STAGE TIMELINE SCRIPT STARTED");
+
+  import ApexCharts from "apexcharts";
+
+  const chartElement =
+    document.querySelector("#stageTimelineChart");
+
+
+  if (!chartElement) {
+
+    console.error(
+      "stageTimelineChart element was not found"
+    );
+
+  } else {
+
+    const projectId =
+      chartElement.dataset.projectId;
+
+
+    /*
+     * --------------------------------------------------
+     * LOAD STAGES
+     * --------------------------------------------------
+     */
+
+    async function loadStageTimeline() {
+
+      try {
+
+        const response = await fetch(
+          `http://localhost:5000/api/stages/project/${projectId}`
+        );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            `Failed to fetch stages: ${response.status}`
+          );
+
+        }
+
+
+        const result =
+          await response.json();
+
+
+        if (!result.success) {
+
+          throw new Error(
+            result.message ||
+            "Failed to retrieve stages"
+          );
+
+        }
+
+
+        /*
+         * Only use top-level stages.
+         */
+
+        const stages =
+          result.data.filter(
+            (stage) =>
+              stage.parentStage === null
+          );
+
+
+        createTimeline(
+          stages
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "❌ Stage timeline error:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /*
+     * --------------------------------------------------
+     * CREATE TIMELINE
+     * --------------------------------------------------
+     */
+
+    function createTimeline(stages) {
+
+
+      /*
+       * ------------------------------------------------
+       * COMBINED DATA
+       * ------------------------------------------------
+       *
+       * Each stage gets:
+       *
+       * 1. Planned row
+       * 2. Actual row
+       *
+       * immediately beside each other.
+       */
+
+      const timelineData = [];
+
+
+      stages.forEach(
+        (stage) => {
+
+
+          /*
+           * ----------------------------------------------
+           * PLANNED
+           * ----------------------------------------------
+           */
+
+          if (
+            stage.plannedStart &&
+            stage.plannedFinish
+          ) {
+
+            timelineData.push({
+
+              x:
+                `${stage.name} — Planned`,
+
+              y: [
+
+                new Date(
+                  stage.plannedStart
+                ).getTime(),
+
+                new Date(
+                  stage.plannedFinish
+                ).getTime(),
+
+              ],
+
+              stageId:
+                stage._id,
+
+              stageName:
+                stage.name,
+
+              scheduleType:
+                "Planned",
+
+              progress:
+                stage.progress ?? 0,
+
+              status:
+                stage.status ??
+                "Not Started",
+
+            });
+
+          }
+
+
+          /*
+           * ----------------------------------------------
+           * ACTUAL
+           * ----------------------------------------------
+           *
+           * Only display Actual when BOTH dates exist.
+           */
+
+          if (
+            stage.actualStart &&
+            stage.actualFinish
+          ) {
+
+            timelineData.push({
+
+              x:
+                `${stage.name} — Actual`,
+
+              y: [
+
+                new Date(
+                  stage.actualStart
+                ).getTime(),
+
+                new Date(
+                  stage.actualFinish
+                ).getTime(),
+
+              ],
+
+              stageId:
+                stage._id,
+
+              stageName:
+                stage.name,
+
+              scheduleType:
+                "Actual",
+
+              progress:
+                stage.progress ?? 0,
+
+              status:
+                stage.status ??
+                "Not Started",
+
+            });
+
+          }
+
+        }
+      );
+
+
+      console.log(
+        "📅 Combined timeline data:",
+        timelineData
+      );
+
+
+      /*
+       * ------------------------------------------------
+       * PREVENT DUPLICATE CHART
+       * ------------------------------------------------
+       */
+
+      if (
+        chartElement.querySelector(
+          ".apexcharts-canvas"
+        )
+      ) {
+
+        console.log(
+          "Chart already exists."
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * ------------------------------------------------
+       * CHART HEIGHT
+       * ------------------------------------------------
+       *
+       * Approximately two rows per stage.
+       */
+
+      const chartHeight =
+        Math.max(
+          500,
+          stages.length * 130
+        );
+
+
+      /*
+       * ------------------------------------------------
+       * APEXCHARTS OPTIONS
+       * ------------------------------------------------
+       */
+
+      const options = {
+
+        /*
+         * IMPORTANT:
+         *
+         * Only ONE series is used.
+         *
+         * This allows the individual rows to appear
+         * exactly in the order we created them.
+         */
+
+        series: [
+
+          {
+
+            name:
+              "Schedule",
+
+            data:
+              timelineData,
+
+          },
+
+        ],
+
+          colors: [
+          function ({ seriesIndex, dataPointIndex, w }) {
+
+            const data =
+              w.config.series[seriesIndex].data[dataPointIndex];
+
+            if (data?.scheduleType === "Actual") {
+              return "#008243";
+            }
+
+            return "#006d9b";
+          }
+        ],
+         annotations: {
+
+          xaxis: [
+
+            {
+
+              x:
+                new Date().getTime(),
+
+              borderColor:
+                "#ef4444",
+
+              strokeDashArray:
+                0,
+
+              borderWidth:
+                2,
+
+              label: {
+
+                borderColor:
+                  "#ef4444",
+
+                style: {
+
+                  color:
+                    "#ffffff",
+
+                  background:
+                    "#ef4444",
+
+                  fontSize:
+                    "11px",
+
+                  fontWeight:
+                    600,
+
+                },
+
+                text:
+                  "Today",
+
+                orientation:
+                  "vertical",
+
+                offsetY:
+                  10,
+
+              },
+
+            },
+
+          ],
+
+        },
+
+        chart: {
+
+          type:
+            "rangeBar",
+
+          height:
+            chartHeight,
+
+          width:
+            "100%",
+
+          fontFamily:
+            "Inter, sans-serif",
+
+          toolbar: {
+
+            show:
+              false,
+
+          },
+
+          zoom: {
+
+            enabled:
+              false,
+
+          },
+
+        },
+
+
+        /*
+         * ------------------------------------------------
+         * BAR SETTINGS
+         * ------------------------------------------------
+         */
+
+        plotOptions: {
+
+          bar: {
+
+            horizontal:
+              true,
+
+            barHeight:
+              "55%",
+
+            rangeBarGroupRows:
+              false,
+
+            borderRadius:
+              5,
+
+          },
+
+        },
+
+
+        dataLabels: {
+
+          enabled:
+            false,
+
+        },
+
+
+        /*
+         * ------------------------------------------------
+         * X AXIS
+         * ------------------------------------------------
+         */
+
+        xaxis: {
+
+          type:
+            "datetime",
+
+          position:
+            "bottom",
+
+          title: {
+
+            text:
+              "Project Timeline",
+
+            offsetY:
+              5,
+
+          },
+
+          labels: {
+
+            datetimeUTC:
+              false,
+
+            style: {
+
+              fontSize:
+                "11px",
+
+            },
+
+          },
+
+        },
+
+
+        /*
+         * ------------------------------------------------
+         * Y AXIS
+         * ------------------------------------------------
+         */
+
+        yaxis: {
+
+          labels: {
+
+            minWidth:
+              260,
+
+            maxWidth:
+              260,
+
+            align:
+              "left",
+
+            style: {
+
+              fontSize:
+                "12px",
+
+              fontWeight:
+                500,
+
+            },
+
+          },
+
+        },
+
+
+        /*
+         * ------------------------------------------------
+         * TOOLTIP
+         * ------------------------------------------------
+         */
+
+        tooltip: {
+
+          custom: function ({
+            dataPointIndex,
+            w,
+          }) {
+
+
+            const data =
+              w.config.series[0]
+                .data[
+                  dataPointIndex
+                ];
+
+
+            if (!data) {
+
+              return "";
+
+            }
+
+
+            const start =
+              new Date(
+                data.y[0]
+              ).toLocaleDateString(
+                "en-GB",
+                {
+                  day:
+                    "2-digit",
+
+                  month:
+                    "short",
+
+                  year:
+                    "numeric",
+                }
+              );
+
+
+            const finish =
+              new Date(
+                data.y[1]
+              ).toLocaleDateString(
+                "en-GB",
+                {
+                  day:
+                    "2-digit",
+
+                  month:
+                    "short",
+
+                  year:
+                    "numeric",
+                }
+              );
+
+
+            return `
+
+              <div
+                style="
+                  padding: 12px 14px;
+                  min-width: 230px;
+                  font-family: Inter, sans-serif;
+                  line-height: 1.6;
+                "
+              >
+
+                <div
+                  style="
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin-bottom: 8px;
+                  "
+                >
+                  ${data.stageName}
+                </div>
+
+
+                <div
+                  style="
+                    font-size: 12px;
+                    margin-bottom: 6px;
+                  "
+                >
+
+                  <strong>
+                    ${data.scheduleType}
+                  </strong>
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Start:
+                  </strong>
+
+                  ${start}
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Finish:
+                  </strong>
+
+                  ${finish}
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Progress:
+                  </strong>
+
+                  ${data.progress}%
+
+                </div>
+
+
+                <div>
+
+                  <strong>
+                    Status:
+                  </strong>
+
+                  ${data.status}
+
+                </div>
+
+              </div>
+
+            `;
+
+          },
+
+        },
+
+
+        /*
+         * ------------------------------------------------
+         * LEGEND
+         * ------------------------------------------------
+         *
+         * Because we now have one series, ApexCharts
+         * cannot automatically create Planned / Actual
+         * legend items.
+         *
+         * We therefore hide the default legend.
+         */
+
+        legend: {
+
+          show:
+            false,
+
+        },
+
+
+        /*
+         * ------------------------------------------------
+         * GRID
+         * ------------------------------------------------
+         */
+
+        grid: {
+
+          strokeDashArray:
+            4,
+
+          padding: {
+
+            left:
+              10,
+
+            right:
+              20,
+
+            top:
+              10,
+
+            bottom:
+              10,
+
+          },
+
+        },
+
+
+        /*
+         * ------------------------------------------------
+         * RESPONSIVE
+         * ------------------------------------------------
+         */
+
+        responsive: [
+
+          {
+
+            breakpoint:
+              900,
+
+            options: {
+
+              chart: {
+
+                height:
+                  Math.max(
+                    500,
+                    stages.length * 115
+                  ),
+
+              },
+
+
+              yaxis: {
+
+                labels: {
+
+                  minWidth:
+                    200,
+
+                  maxWidth:
+                    200,
+
+                  style: {
+
+                    fontSize:
+                      "11px",
+
+                  },
+
+                },
+
+              },
+
+            },
+
+          },
+
+
+          {
+
+            breakpoint:
+              600,
+
+            options: {
+
+              chart: {
+
+                height:
+                  Math.max(
+                    500,
+                    stages.length * 105
+                  ),
+
+              },
+
+
+              yaxis: {
+
+                labels: {
+
+                  minWidth:
+                    150,
+
+                  maxWidth:
+                    150,
+
+                  style: {
+
+                    fontSize:
+                      "10px",
+
+                  },
+
+                },
+
+              },
+
+
+              plotOptions: {
+
+                bar: {
+
+                  barHeight:
+                    "50%",
+
+                },
+
+              },
+
+            },
+
+          },
+
+        ],
+
+      };
+
+
+      /*
+       * ------------------------------------------------
+       * RENDER
+       * ------------------------------------------------
+       */
+
+      const chart =
+        new ApexCharts(
+          chartElement,
+          options
+        );
+
+
+      chart.render();
+
+
+      console.log(
+        "✅ Stage timeline rendered"
+      );
+
+    }
+
+
+    /*
+     * --------------------------------------------------
+     * INITIAL LOAD
+     * --------------------------------------------------
+     */
+
+    loadStageTimeline();
+
+  }
+</script>
+
+
+<style>
+
+  .chart-card {
+
+    width:
+      100%;
+
+    padding:
+      1.25rem;
+
+    margin-top:
+      1rem;
+
+    border-radius:
+      12px;
+
+    background:
+      var(--color-background);
+
+    border:
+      1px solid
+      var(--color-border);
+
+    box-sizing:
+      border-box;
+
+  }
+
+
+  .chart-card-header {
+
+    margin-bottom:
+      1.25rem;
+
+  }
+
+
+  .chart-card-header h3 {
+
+    margin:
+      0;
+
+    font-size:
+      1rem;
+
+    font-weight:
+      600;
+
+    color:
+      var(--color-text);
+
+  }
+
+
+  .chart-card-header p {
+
+    margin:
+      0.35rem 0 0;
+
+    font-size:
+      0.85rem;
+
+    color:
+      var(--color-text-secondary);
+
+  }
+
+
+  #stageTimelineChart {
+
+    width:
+      100%;
+
+    min-height:
+      500px;
+
+  }
+
+</style>

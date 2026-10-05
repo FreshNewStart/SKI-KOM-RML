@@ -1,0 +1,1024 @@
+---
+interface Props {
+  title?: string;
+  subtitle?: string;
+}
+
+const {
+  title = "Sign in",
+  subtitle = "Access the RML Project Management System",
+} = Astro.props;
+---
+
+<div class="login-container">
+
+  <div class="login-card">
+
+    <!-- RML BRAND -->
+    <div class="brand">
+
+      <div class="brand-icon">
+        <i class="bi bi-building"></i>
+      </div>
+
+      <div class="brand-text">
+        <div class="brand-name">
+          RABALLAM
+        </div>
+
+        <div class="brand-subtitle">
+          MAINTENANCE LIMITED
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- LOGIN HEADER -->
+    <div class="login-header">
+
+      <h1>
+        {title}
+      </h1>
+
+      <p>
+        {subtitle}
+      </p>
+
+    </div>
+
+
+    <!-- LOGIN FORM -->
+    <form method="post">
+
+      <!-- USERNAME -->
+
+      <div class="form-group">
+
+  <label for="email">
+    Email Address
+  </label>
+
+  <div class="input-wrapper">
+
+    <i class="bi bi-envelope"></i>
+
+    <input
+      id="email"
+      name="email"
+      class="input"
+      type="email"
+      placeholder="Enter your email address"
+      autocomplete="email"
+      required
+    />
+
+  </div>
+
+</div>
+
+
+      <!-- PASSWORD -->
+
+      <div class="form-group">
+
+        <label for="password">
+          Password
+        </label>
+
+        <div class="input-wrapper">
+
+          <i class="bi bi-lock"></i>
+
+          <input
+            id="password"
+            name="password"
+            class="input"
+            type="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          />
+
+        </div>
+
+      </div>
+
+
+      <!-- OPTIONS -->
+
+      <div class="login-options">
+
+        <label class="remember-me">
+
+          <input
+            type="checkbox"
+            name="remember"
+          />
+
+          <span>
+            Remember me
+          </span>
+
+        </label>
+
+
+        <a
+          href="#"
+          class="forgot-password"
+        >
+          Forgot Password?
+        </a>
+
+      </div>
+
+
+      <!-- SUBMIT -->
+
+      <button
+        type="submit"
+        class="login-button"
+      >
+
+        <span>
+          Sign In
+        </span>
+
+        <i class="bi bi-arrow-right"></i>
+
+      </button>
+
+    </form>
+
+
+    <!-- SECURITY NOTICE -->
+
+    <div class="security-notice">
+
+      <i class="bi bi-shield-lock"></i>
+
+      <span>
+        This system is restricted to authorised RML personnel.
+      </span>
+
+    </div>
+
+
+    <!-- FOOTER -->
+
+    <div class="login-footer">
+
+      <span>
+        Raballam Maintenance Limited
+      </span>
+
+      <span class="footer-dot">
+        •
+      </span>
+
+      <span>
+        Project Management System
+      </span>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<style>
+
+  /* ---------------------------------------------
+     CONTAINER
+  --------------------------------------------- */
+
+  .login-container {
+
+    min-height: 100vh;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 30px;
+
+    background:
+      linear-gradient(
+        135deg,
+        #111827 0%,
+        #1f2937 50%,
+        #111827 100%
+      );
+
+  }
+
+
+  /* ---------------------------------------------
+     CARD
+  --------------------------------------------- */
+
+  .login-card {
+
+    width: 100%;
+
+    max-width: 430px;
+
+    padding: 40px;
+
+    background: #ffffff;
+
+    border-radius: 14px;
+
+    box-shadow:
+      0 20px 50px rgba(0, 0, 0, 0.25);
+
+  }
+
+
+  /* ---------------------------------------------
+     BRAND
+  --------------------------------------------- */
+
+  .brand {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 12px;
+
+    margin-bottom: 35px;
+
+  }
+
+
+  .brand-icon {
+
+    width: 48px;
+
+    height: 48px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #b91c1c;
+
+    color: #ffffff;
+
+    border-radius: 10px;
+
+    font-size: 23px;
+
+  }
+
+
+  .brand-name {
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+
+    color: #111827;
+
+  }
+
+
+  .brand-subtitle {
+
+    margin-top: 2px;
+
+    font-size: 9px;
+
+    font-weight: 600;
+
+    letter-spacing: 2px;
+
+    color: #6b7280;
+
+  }
+
+
+  /* ---------------------------------------------
+     HEADER
+  --------------------------------------------- */
+
+  .login-header {
+
+    text-align: center;
+
+    margin-bottom: 28px;
+
+  }
+
+
+  .login-header h1 {
+
+    margin: 0;
+
+    font-size: 26px;
+
+    font-weight: 700;
+
+    color: #111827;
+
+  }
+
+
+  .login-header p {
+
+    margin: 8px 0 0;
+
+    font-size: 13px;
+
+    color: #6b7280;
+
+  }
+
+
+  /* ---------------------------------------------
+     FORM
+  --------------------------------------------- */
+
+  form {
+
+    margin: 0;
+
+  }
+
+
+  .form-group {
+
+    margin-bottom: 18px;
+
+  }
+
+
+  .form-group label {
+
+    display: block;
+
+    margin-bottom: 7px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: #374151;
+
+  }
+
+
+  /* ---------------------------------------------
+     INPUT
+  --------------------------------------------- */
+
+  .input-wrapper {
+
+    position: relative;
+
+  }
+
+
+  .input-wrapper i {
+
+    position: absolute;
+
+    left: 15px;
+
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #9ca3af;
+
+    font-size: 17px;
+
+  }
+
+
+  .input {
+
+    width: 100%;
+
+    height: 48px;
+
+    padding: 0 15px 0 44px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    font-size: 14px;
+
+    color: #111827;
+
+    background: #ffffff;
+
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+
+  }
+
+
+  .input::placeholder {
+
+    color: #9ca3af;
+
+  }
+
+
+  .input:focus {
+
+    border-color: #b91c1c;
+
+    box-shadow:
+      0 0 0 3px rgba(185, 28, 28, 0.10);
+
+  }
+
+
+  /* ---------------------------------------------
+     OPTIONS
+  --------------------------------------------- */
+
+  .login-options {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin: 5px 0 22px;
+
+    font-size: 12px;
+
+  }
+
+
+  .remember-me {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    color: #6b7280;
+
+    cursor: pointer;
+
+  }
+
+
+  .remember-me input {
+
+    width: 14px;
+
+    height: 14px;
+
+    accent-color: #b91c1c;
+
+  }
+
+
+  .forgot-password {
+
+    color: #b91c1c;
+
+    text-decoration: none;
+
+    font-weight: 500;
+
+  }
+
+
+  .forgot-password:hover {
+
+    text-decoration: underline;
+
+  }
+
+
+  /* ---------------------------------------------
+     LOGIN BUTTON
+  --------------------------------------------- */
+
+  .login-button {
+
+    width: 100%;
+
+    height: 48px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #b91c1c;
+
+    color: #ffffff;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+      background 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
+
+  }
+
+
+  .login-button i {
+
+    transition:
+      transform 0.2s;
+
+  }
+
+
+  .login-button:hover {
+
+    background: #991b1b;
+
+    box-shadow:
+      0 6px 15px rgba(185, 28, 28, 0.25);
+
+  }
+
+
+  .login-button:hover i {
+
+    transform: translateX(3px);
+
+  }
+
+
+  /* ---------------------------------------------
+     SECURITY NOTICE
+  --------------------------------------------- */
+
+  .security-notice {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    margin-top: 24px;
+
+    padding: 10px 12px;
+
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 7px;
+
+    color: #6b7280;
+
+    font-size: 10px;
+
+    text-align: center;
+
+  }
+
+
+  .security-notice i {
+
+    color: #6b7280;
+
+    font-size: 13px;
+
+  }
+
+
+  /* ---------------------------------------------
+     FOOTER
+  --------------------------------------------- */
+
+  .login-footer {
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 7px;
+
+    margin-top: 25px;
+
+    font-size: 9px;
+
+    color: #9ca3af;
+
+    text-align: center;
+
+  }
+
+
+  /* ---------------------------------------------
+     MOBILE
+  --------------------------------------------- */
+
+  @media only screen and (max-width: 500px) {
+
+    .login-container {
+
+      padding: 18px;
+
+    }
+
+
+    .login-card {
+
+      padding: 30px 24px;
+
+      border-radius: 12px;
+
+    }
+
+
+    .brand {
+
+      margin-bottom: 28px;
+
+    }
+
+
+    .login-header h1 {
+
+      font-size: 23px;
+
+    }
+
+
+    .login-header p {
+
+      font-size: 12px;
+
+    }
+
+
+    .input {
+
+      height: 46px;
+
+      font-size: 13px;
+
+    }
+
+
+    .login-button {
+
+      height: 46px;
+
+    }
+
+
+    .login-footer {
+
+      flex-direction: column;
+
+      gap: 3px;
+
+    }
+
+
+    .footer-dot {
+
+      display: none;
+
+    }
+
+  }
+
+</style>
+<script>
+
+  /*
+   * --------------------------------------------------
+   * CONFIGURATION
+   * --------------------------------------------------
+   */
+
+  const API_URL =
+    "http://localhost:5000/api/auth/login";
+
+  const DASHBOARD_URL =
+    "/";
+
+
+  /*
+   * --------------------------------------------------
+   * ELEMENTS
+   * --------------------------------------------------
+   */
+
+  const loginForm =
+    document.querySelector(
+      ".login-card form"
+    );
+
+  const loginButton =
+    document.querySelector(
+      ".login-button"
+    );
+
+
+  /*
+   * --------------------------------------------------
+   * LOGIN
+   * --------------------------------------------------
+   */
+
+  if (loginForm && loginButton) {
+
+    loginForm.addEventListener(
+      "submit",
+      async (event) => {
+
+        /*
+         * Stop the browser from
+         * performing a normal form submission.
+         */
+
+        event.preventDefault();
+
+
+        /*
+         * Get the form fields.
+         */
+
+        const emailInput =
+          document.querySelector(
+            "#email"
+          );
+
+        const passwordInput =
+          document.querySelector(
+            "#password"
+          );
+
+        const rememberInput =
+          document.querySelector(
+            'input[name="remember"]'
+          );
+
+
+        const email =
+          emailInput.value
+            .trim()
+            .toLowerCase();
+
+        const password =
+          passwordInput.value;
+
+
+        /*
+         * Prevent empty submission.
+         */
+
+        if (!email || !password) {
+
+          return;
+
+        }
+
+
+        /*
+         * Disable button while
+         * authentication is happening.
+         */
+
+        loginButton.disabled =
+          true;
+
+        loginButton.innerHTML = `
+          <span>
+            Signing in...
+          </span>
+
+          <i class="bi bi-arrow-repeat"></i>
+        `;
+
+
+        try {
+
+          /*
+           * Send credentials
+           * to Express.
+           */
+
+          const response =
+            await fetch(
+              API_URL,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body: JSON.stringify({
+                  email,
+                  password
+                })
+              }
+            );
+
+
+          /*
+           * Read API response.
+           */
+
+          const result =
+            await response.json();
+
+
+          console.log(
+            "Login response:",
+            result
+          );
+
+
+          /*
+           * Login failed.
+           */
+
+          if (!response.ok) {
+
+            throw new Error(
+              result.message ||
+              "Invalid email or password"
+            );
+
+          }
+
+
+          /*
+           * Make sure JWT exists.
+           */
+
+          if (!result.token) {
+
+            throw new Error(
+              "No authentication token was returned."
+            );
+
+          }
+
+
+          /*
+           * ------------------------------------------------
+           * STORE JWT
+           * ------------------------------------------------
+           *
+           * Remember me checked:
+           *     localStorage
+           *
+           * Remember me unchecked:
+           *     sessionStorage
+           */
+
+          const storage =
+            rememberInput.checked
+              ? localStorage
+              : sessionStorage;
+
+
+          storage.setItem(
+            "token",
+            result.token
+          );
+
+
+          /*
+           * Store logged-in user.
+           */
+
+          if (result.user) {
+
+            storage.setItem(
+              "user",
+              JSON.stringify(
+                result.user
+              )
+            );
+
+          }
+
+
+          /*
+           * Store organisation.
+           */
+
+          if (
+            result.user &&
+            result.user.organisation
+          ) {
+
+            storage.setItem(
+              "organisation",
+              JSON.stringify(
+                result.user.organisation
+              )
+            );
+
+          }
+
+
+          /*
+           * ------------------------------------------------
+           * SUCCESS
+           * ------------------------------------------------
+           */
+
+          loginButton.innerHTML = `
+            <span>
+              Login successful
+            </span>
+
+            <i class="bi bi-check-lg"></i>
+          `;
+
+
+          /*
+           * Redirect to dashboard.
+           */
+
+          window.location.href =
+            DASHBOARD_URL;
+
+
+        } catch (error) {
+
+          console.error(
+            "Login error:",
+            error
+          );
+
+
+          /*
+           * Show error message.
+           */
+
+          alert(
+            error.message ||
+            "Unable to sign in."
+          );
+
+
+          /*
+           * Restore button.
+           */
+
+          loginButton.disabled =
+            false;
+
+          loginButton.innerHTML = `
+            <span>
+              Sign In
+            </span>
+
+            <i class="bi bi-arrow-right"></i>
+          `;
+
+        }
+
+      }
+    );
+
+  }
+
+</script>
+

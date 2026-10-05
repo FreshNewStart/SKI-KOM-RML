@@ -1,0 +1,2304 @@
+---
+import StatCard from "./StatCard.astro";
+import ProgressChart from "./ProgressChart.astro";
+import StageForm from "./forms/StageForm.astro";
+import MilestoneForm from "./forms/MilestoneForm.astro";
+import ProgramRivisionForm from "./forms/ProgramRivisionForm.astro";
+import FileUploadForm from "./forms/FileUploadForm.astro";
+
+const projectId = "6aa81933b3f5dd584c234f38";
+
+const response = await fetch(
+  `http://localhost:5000/api/dashboard/overview/${projectId}`
+);
+
+const overview = await response.json();
+
+console.log("DASHBOARD OVERVIEW:", overview);
+
+const {
+  activeActivities,
+  completedActivities,
+  onHoldActivities,
+  notStartedActivities,
+  activeStages,
+  completedStages,
+  onHoldStages,
+  notStartedStages,
+} = overview;
+---
+
+<!--
+  Authentication Guard
+
+  The dashboard is hidden initially and only revealed after
+  the browser checks for an authentication token.
+-->
+
+<div id="dashboardAuthGuard" class="dashboard-auth-guard">
+  <div class="auth-loading">
+    <span class="material-symbols-rounded">progress_activity</span>
+    <span>Checking authentication...</span>
+  </div>
+</div>
+
+<div class="dashboard-container" id="dashboardContainer">
+
+  <!-- Dashboard Sidebar -->
+
+  <aside class="dashboard-sidebar" id="dashboardSidebar">
+
+    <div class="dashboard-brand">
+
+      <button
+        class="dashboard-sidebar-toggle"
+        type="button"
+        aria-label="Toggle sidebar"
+      >
+        <span class="material-symbols-rounded">menu</span>
+      </button>
+
+      <a class="logo">My Dashboard</a>
+
+    </div>
+
+    <nav class="dashboard-nav">
+
+      <div class="dashboard-nav-section">
+
+        <a
+          href="#"
+          class="dashboard-nav-item active"
+          data-view="overview"
+        >
+          <span class="nav-icon material-symbols-rounded">
+            dashboard
+          </span>
+
+          <span class="nav-label">
+            Overview
+          </span>
+        </a>
+
+        <a
+          href="#"
+          class="dashboard-nav-item"
+          data-view="stages"
+        >
+          <span class="nav-icon material-symbols-rounded">
+            flowchart
+          </span>
+
+          <span class="nav-label">
+            Stages / Activities
+          </span>
+        </a>
+
+        <a
+          href="#"
+          class="dashboard-nav-item"
+          data-view="edit"
+        >
+          <span class="nav-icon material-symbols-rounded">
+            edit_document
+          </span>
+
+          <span class="nav-label">
+            Edit Data
+          </span>
+        </a>
+
+        <a
+          href="#"
+          class="dashboard-nav-item"
+          data-view="team"
+        >
+          <span class="nav-icon material-symbols-rounded">
+            diversity_3
+          </span>
+
+          <span class="nav-label">
+            Team Members
+          </span>
+        </a>
+
+        <a
+          href="#"
+          class="dashboard-nav-item"
+          data-view="profile"
+        >
+          <span class="nav-icon material-symbols-rounded">
+            manage_accounts
+          </span>
+
+          <span class="nav-label">
+            Account Settings
+          </span>
+        </a>
+
+        <a
+          href="#"
+          class="dashboard-nav-item"
+          data-view="files"
+        >
+          <span class="nav-icon material-symbols-rounded">
+            files
+          </span>
+
+          <span class="nav-label">
+            Files
+          </span>
+        </a>
+
+      </div>
+
+    </nav>
+
+    <!-- Back to Site Button -->
+    <div class="sidebar-footer">
+
+      <a
+        href="/"
+        class="btn btn-secondary sidebar-back-button"
+      >
+        <span class="material-symbols-rounded">
+          home
+        </span>
+
+        <span class="btn-label">
+          Back to Site
+        </span>
+      </a>
+
+    </div>
+
+  </aside>
+
+  <div
+    class="dashboard-sidebar-overlay"
+    id="dashboardSidebarOverlay"
+  ></div>
+
+  <!-- Dashboard Main Content -->
+
+  <main class="dashboard-main">
+
+    <!-- Dashboard Header -->
+
+    <header class="dashboard-header">
+
+      <!-- Header Content -->
+
+      <div class="dashboard-header-content">
+
+        <button
+          class="dashboard-sidebar-toggle"
+          type="button"
+          aria-label="Toggle sidebar"
+        >
+          <span class="material-symbols-rounded">
+            menu
+          </span>
+        </button>
+
+        <!-- Personalized Header -->
+
+        <div class="dashboard-header-title-group">
+
+          <span
+            class="dashboard-greeting"
+            id="dashboardGreeting"
+          >
+            Welcome
+          </span>
+
+          <h1
+            class="dashboard-header-title"
+            id="dashboardTitle"
+          >
+          </h1>
+
+        </div>
+
+      </div>
+
+      <!-- Header Actions -->
+
+      <div class="dashboard-header-actions">
+
+        <!-- Notification Button -->
+
+        <div class="notification-button">
+
+          <span class="material-symbols-rounded">
+            notifications
+          </span>
+
+          <div class="notification-badge">
+            3
+          </div>
+
+        </div>
+
+        <!-- User Profile -->
+
+        <div
+          class="user-menu"
+          id="userMenu"
+        >
+
+          <div
+            class="user-menu-trigger"
+            id="user-menu-trigger"
+          >
+
+            <!-- User Initials Avatar -->
+
+            <div
+              class="user-avatar-small"
+              id="userAvatar"
+            >
+              <span id="userAvatarInitials">
+                U
+              </span>
+            </div>
+
+          </div>
+
+          <div class="user-menu-dropdown">
+
+            <!-- Logged-in User Information -->
+
+            <div class="user-menu-profile">
+
+              <div
+                class="user-menu-profile-name"
+                id="userProfileName"
+              >
+                User
+              </div>
+
+              <div
+                class="user-menu-profile-role"
+                id="userProfileRole"
+              >
+                Viewer
+              </div>
+
+              <div
+                class="user-menu-profile-email"
+                id="userProfileEmail"
+              >
+                —
+              </div>
+
+            </div>
+
+            <div class="user-menu-divider"></div>
+
+            <a
+              href="#"
+              class="user-menu-item"
+            >
+              <span class="icon material-symbols-rounded">
+                person
+              </span>
+
+              <span>
+                Profile
+              </span>
+            </a>
+
+            <!-- Theme Toggle -->
+
+            <div class="user-menu-item theme-item">
+
+              <span class="icon material-symbols-rounded">
+                palette
+              </span>
+
+              <div
+                class="theme-toggle"
+                id="theme-toggle"
+              >
+
+                <div
+                  class="theme-option active"
+                  data-theme="light"
+                >
+                  Light
+                </div>
+
+                <div
+                  class="theme-option"
+                  data-theme="dark"
+                >
+                  Dark
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- Sign Out -->
+
+            <button
+              type="button"
+              class="user-menu-item sign-out-button"
+              id="signOutButton"
+            >
+
+              <span class="icon material-symbols-rounded">
+                logout
+              </span>
+
+              <span>
+                Sign Out
+              </span>
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+    <!-- Dashboard Content -->
+
+    <div class="dashboard-content">
+
+      <!-- Overview View -->
+
+      <div
+        class="dashboard-view active"
+        id="overview"
+      >
+
+        <div class="statCard-container">
+
+          <StatCard
+            heading="Active"
+            activeActivities={activeActivities}
+            activeStages={activeStages}
+            animation="/1.json"
+          />
+
+          <StatCard
+            heading="Completed"
+            activeActivities={completedActivities}
+            activeStages={completedStages}
+            animation="/2.json"
+          />
+
+          <StatCard
+            heading="Not Started"
+            activeActivities={notStartedActivities}
+            activeStages={notStartedStages}
+            animation="/3.json"
+          />
+
+          <StatCard
+            heading="On Hold"
+            activeActivities={onHoldActivities}
+            activeStages={onHoldStages}
+            animation="/4.json"
+          />
+
+        </div>
+
+        <!-- Charts -->
+
+        <ProgressChart projectId={projectId} />
+
+      </div>
+
+      <!-- Stages View -->
+
+      <div
+        class="dashboard-view"
+        id="stages"
+      >
+
+        <div class="empty-state">
+
+          <div class="empty-state-icon">
+
+            <span class="material-symbols-rounded">
+              flowchart
+            </span>
+
+          </div>
+
+          <h3 class="empty-state-title">
+            Stages and Activities
+          </h3>
+
+          <p class="empty-state-description">
+            View your stages and activities here.
+            Track progress, and collaborate with your team.
+          </p>
+
+        </div>
+
+      </div>
+
+      <!-- Tasks / Edit View -->
+
+      <div
+        class="dashboard-view"
+        id="edit"
+      >
+
+        <!--
+          StageForm deliberately does not use the .empty-state wrapper.
+          The empty-state class applies text-align: center and is intended
+          for placeholder views, not form layouts.
+        -->
+
+        <div class="stage-form-view">
+
+          <FileUploadForm
+            projectId={projectId}
+          />
+
+        </div>
+
+      </div>
+
+      <!-- Reports View -->
+
+      <div
+        class="dashboard-view"
+        id="team"
+      >
+
+        <div class="empty-state">
+
+          <div class="empty-state-icon">
+
+            <span class="material-symbols-rounded">
+              diversity_3
+            </span>
+
+          </div>
+
+          <h3 class="empty-state-title">
+            Team Members
+          </h3>
+
+          <p class="empty-state-description">
+            View and Collaborate with Team Members Here.
+            This will be equiped with Messaging and group
+            Notification Functionalities.
+          </p>
+
+        </div>
+
+      </div>
+
+      <!-- Settings View -->
+
+      <div
+        class="dashboard-view"
+        id="profile"
+      >
+
+        <div class="empty-state">
+
+          <div class="empty-state-icon">
+
+            <span class="material-symbols-rounded">
+              manage_accounts
+            </span>
+
+          </div>
+
+          <h3 class="empty-state-title">
+            Manage Profile
+          </h3>
+
+          <p class="empty-state-description">
+            Manage and Configure your Account information and Settings.
+          </p>
+
+        </div>
+
+      </div>
+
+      <!-- Files View -->
+
+      <div
+        class="dashboard-view"
+        id="files"
+      >
+
+        <div class="empty-state">
+
+          <div class="empty-state-icon">
+
+            <span class="material-symbols-rounded">
+              files
+            </span>
+
+          </div>
+
+          <h3 class="empty-state-title">
+            Manage Files
+          </h3>
+
+          <p class="empty-state-description">
+            View, Upload and Download Project Files.
+            Scheduled Report Generation Functionalities will also
+            be implemented here.
+          </p>
+
+         </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+<style>
+
+/* ===================================
+   AUTHENTICATION GUARD
+   =================================== */
+
+.dashboard-container {
+  display: none;
+}
+
+.dashboard-container.authenticated {
+  display: flex;
+}
+
+.dashboard-auth-guard {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background, #ffffff);
+}
+
+.dashboard-auth-guard.hidden {
+  display: none;
+}
+
+.auth-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-secondary, #6b7280);
+  font-size: 14px;
+}
+
+.auth-loading .material-symbols-rounded {
+  font-size: 28px;
+  animation: authSpin 1.2s linear infinite;
+}
+
+@keyframes authSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+/* ===================================
+   DASHBOARD LAYOUT
+   =================================== */
+
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+
+
+/* Sidebar */
+
+.dashboard-sidebar {
+  width: var(--sidebar-width);
+  background: var(--color-background);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  z-index: 1000;
+  transition: var(--transition);
+}
+
+.dashboard-sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.dashboard-brand {
+  padding: var(--space-md) calc(var(--space-lg) - 2px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  height: var(--header-height);
+}
+
+.dashboard-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  color: var(--color-text);
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+}
+
+.dashboard-sidebar-toggle:hover {
+  background: var(--color-surface-hover);
+}
+
+.dashboard-sidebar .logo {
+  font-size: var(--text-lg);
+  white-space: nowrap;
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  transition: var(--transition);
+}
+
+.dashboard-sidebar.collapsed .logo {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dashboard-nav {
+  flex: 1;
+  padding: var(--space-md) var(--space-xs);
+}
+
+.dashboard-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-nav-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-lg);
+  margin: 2px var(--space-sm);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.dashboard-nav-item .nav-icon {
+  color: var(--color-text-secondary);
+  margin-right: var(--space-base);
+  font-size: var(--text-2xl);
+  flex-shrink: 0;
+}
+
+.dashboard-nav-item:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.dashboard-nav-item.active {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+}
+
+.dashboard-sidebar .nav-label {
+  transition: var(--transition);
+}
+
+.dashboard-sidebar.collapsed .nav-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-footer {
+  padding: var(--space-md);
+}
+
+.sidebar-back-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.dashboard-sidebar.collapsed .sidebar-back-button .btn-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dashboard-sidebar.collapsed .sidebar-back-button {
+  padding-left: 12px;
+}
+
+.dashboard-sidebar-overlay {
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  transition: var(--transition);
+}
+
+
+
+/* Main Content */
+
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+
+
+/* Header */
+
+.dashboard-header {
+  height: var(--header-height);
+  background: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-lg);
+  gap: var(--space-md);
+}
+
+.dashboard-header-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.dashboard-header .dashboard-sidebar-toggle {
+  display: none;
+}
+
+.dashboard-header-title-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.dashboard-greeting {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+}
+
+.dashboard-header-title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+
+
+/* Search Container */
+
+.search-container {
+  display: flex;
+  align-items: center;
+  max-width: 500px;
+  width: 100%;
+  margin: 0 var(--space-2xl);
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  z-index: 10;
+  pointer-events: none;
+  color: var(--color-text-secondary);
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg) var(--space-md) var(--space-2xl);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  transition: var(--transition);
+  height: 44px;
+  font-family: var(--font-primary);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.search-close {
+  position: absolute;
+  right: var(--space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-muted);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.search-close:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.search-close.show {
+  display: flex;
+}
+
+.mobile-search-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-secondary);
+  transition: var(--transition);
+}
+
+.mobile-search-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+
+
+/* User Profile */
+
+.user-menu {
+  position: relative;
+}
+
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 36px;
+  width: 36px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.user-menu-trigger:hover {
+  transform: scale(1.1);
+}
+
+.user-avatar-small {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+}
+
+.user-avatar-small .material-symbols-rounded {
+  font-size: var(--text-lg);
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-sm));
+  right: 0;
+  z-index: 1000;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  min-width: 220px;
+  padding: var(--space-sm);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: var(--transition);
+}
+
+.user-menu.active .user-menu-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-base);
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+}
+
+.user-menu-item:not(.theme-item):hover {
+  background: var(--color-surface-hover);
+}
+
+.user-menu-item.theme-item {
+  gap: 0;
+}
+
+.user-menu-item .icon {
+  font-size: 1.4rem;
+}
+
+.user-menu-profile {
+  padding: var(--space-sm) var(--space-base);
+}
+
+.user-menu-profile-name {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.user-menu-profile-role {
+  margin-top: 3px;
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.user-menu-profile-email {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-xs) 0;
+}
+
+.sign-out-button {
+  color: var(--color-error);
+}
+
+.sign-out-button:hover {
+  color: var(--color-error);
+}
+
+
+
+/* Theme Toggle */
+
+.theme-toggle {
+  display: flex;
+  gap: var(--space-xs);
+  margin-left: auto;
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.theme-option {
+  padding: var(--space-xs) var(--space-base);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.theme-option:not(.active):hover {
+  background-color: var(--color-primary-200);
+}
+
+.theme-option.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+
+
+/* Notification Button */
+
+.notification-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+  color: var(--color-text-secondary);
+}
+
+.notification-button:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.notification-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  background: var(--color-error);
+  color: white;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+
+/* Content Area */
+
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xl);
+  border-top-left-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+
+
+/* Views */
+
+.dashboard-view {
+  display: none;
+}
+
+.dashboard-view.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+
+
+/* Statistics Card */
+
+.statCard-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+
+
+/* Chart Cards */
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-2xl);
+}
+
+.chart-card {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+}
+
+.chart-card-header {
+  margin-bottom: var(--space-lg);
+}
+
+.chart-card-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.chart-card-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+}
+
+
+
+/* Table Styles */
+
+.dashboard-table-container {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.dashboard-table-header {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-table-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-table thead {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-table th {
+  padding: var(--space-md) var(--space-lg);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dashboard-table td {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dashboard-table tbody tr:hover {
+  background: var(--color-surface-hover);
+}
+
+.project-title-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  max-width: 300px;
+}
+
+.project-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-100);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.project-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-title-text {
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.project-meta-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.status-badge {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+}
+
+.status-badge.success {
+  background: var(--color-success-100);
+  color: var(--color-success);
+}
+
+.status-badge.warning {
+  background: var(--color-warning-100);
+  color: var(--color-warning);
+}
+
+
+
+/* Empty State */
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-md);
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-lg);
+}
+
+.empty-state-icon .material-symbols-rounded {
+  font-size: var(--text-4xl);
+}
+
+.empty-state-title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+}
+
+.empty-state-description {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+
+
+/* Stage Form View */
+
+.stage-form-view {
+  width: 100%;
+  text-align: left;
+}
+
+
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
+
+@media (max-width: 1024px) {
+
+  .dashboard-sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100%;
+    z-index: 1000;
+    width: var(--sidebar-width);
+    transition: left 0.3s ease;
+  }
+
+  .dashboard-sidebar.collapsed {
+    left: 0;
+  }
+
+  .dashboard-sidebar.collapsed :is(
+    .logo,
+    .nav-label,
+    .nav-icon,
+    .dashboard-nav-title,
+    .sidebar-back-button .btn-label
+  ) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .dashboard-sidebar.collapsed .sidebar-back-button {
+    padding-left: var(--space-md);
+  }
+
+  .dashboard-header {
+    padding: 0 var(--space-md);
+  }
+
+  .dashboard-brand {
+    gap: var(--space-sm);
+  }
+
+  .dashboard-header .dashboard-sidebar-toggle {
+    display: flex;
+  }
+
+  .search-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    height: var(--header-height);
+    background: var(--color-background);
+    border-bottom: 1px solid var(--color-border);
+    z-index: 1001;
+    margin: 0;
+    padding: 0 var(--space-md);
+    display: none;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .search-container.mobile-active {
+    display: flex;
+  }
+
+  .search-container .search-close {
+    display: flex;
+    position: static;
+    transform: none;
+    height: 44px;
+    width: 44px;
+    background: var(--color-surface-hover);
+  }
+
+  .search-icon {
+    left: 30px;
+  }
+
+  .mobile-search-btn {
+    display: flex;
+  }
+
+  .dashboard-sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .dashboard-sidebar {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100%;
+    z-index: 1000;
+    width: var(--sidebar-width);
+    transition: left 0.3s ease;
+  }
+
+  .dashboard-sidebar.collapsed {
+    left: 0;
+    width: var(--sidebar-width);
+  }
+
+  .dashboard-content {
+    padding: var(--space-md);
+    border-top-left-radius: 0;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+
+  .dashboard-header {
+    padding: 0 var(--space-md);
+  }
+
+  .dashboard-content {
+    padding: var(--space-base);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-table-container {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+}
+
+
+
+/* Focus Styles */
+
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary);
+}
+
+
+
+/* Reduced Motion */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .auth-loading .material-symbols-rounded {
+    animation: none;
+  }
+
+  .stage-form-view {
+    text-align: left;
+  }
+}
+
+</style>
+
+<script>
+  /*
+   * AUTHENTICATION
+   * --------------------------------------------------
+   *
+   * The dashboard starts hidden.
+   *
+   * We check for the JWT in localStorage/sessionStorage.
+   * If no token exists, the user is sent back to /login.
+   */
+
+  import { getAuth, logout } from "../lib/auth.js";
+
+
+
+  // ===================================
+  // DOM ELEMENTS
+  // ===================================
+
+  const dashboardContainer =
+    document.getElementById("dashboardContainer");
+
+  const dashboardAuthGuard =
+    document.getElementById("dashboardAuthGuard");
+
+  const signOutButton =
+    document.getElementById("signOutButton");
+
+  const userProfileName =
+    document.getElementById("userProfileName");
+
+  const userProfileRole =
+    document.getElementById("userProfileRole");
+
+  const userProfileEmail =
+    document.getElementById("userProfileEmail");
+
+  const userAvatarInitials =
+    document.getElementById("userAvatarInitials");
+
+  const dashboardGreeting =
+    document.getElementById("dashboardGreeting");
+
+
+
+  // ===================================
+  // AUTHENTICATION CHECK
+  // ===================================
+
+  function checkAuthentication() {
+
+    const auth = getAuth();
+
+    /*
+     * No JWT means the user is not logged in.
+     */
+
+    if (!auth.isAuthenticated) {
+
+      window.location.href = "/login";
+
+      return false;
+    }
+
+
+
+    /*
+     * Display logged-in user's information.
+     */
+
+    if (auth.user) {
+
+      const firstName =
+        auth.user.firstName?.trim() || "";
+
+      const lastName =
+        auth.user.lastName?.trim() || "";
+
+      const fullName =
+        [
+          firstName,
+          lastName
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+
+
+      /*
+       * Full name
+       */
+
+      if (userProfileName) {
+
+        userProfileName.textContent =
+          fullName ||
+          auth.user.email ||
+          "User";
+      }
+
+
+
+      /*
+       * Role
+       */
+
+      if (userProfileRole) {
+
+        userProfileRole.textContent =
+          auth.user.role ||
+          "Viewer";
+      }
+
+
+
+      /*
+       * Email
+       */
+
+      if (userProfileEmail) {
+
+        userProfileEmail.textContent =
+          auth.user.email ||
+          "";
+      }
+
+
+
+      /*
+       * User initials
+       */
+
+      if (userAvatarInitials) {
+
+        const firstInitial =
+          firstName.charAt(0);
+
+        const lastInitial =
+          lastName.charAt(0);
+
+        const initials =
+          `${firstInitial}${lastInitial}`
+            .trim()
+            .toUpperCase();
+
+        userAvatarInitials.textContent =
+          initials ||
+          "U";
+      }
+
+
+
+      /*
+       * Personalized greeting
+       */
+
+      if (dashboardGreeting) {
+
+        const hour =
+          new Date().getHours();
+
+        let greeting;
+
+        if (hour < 12) {
+
+          greeting = "Good morning";
+
+        } else if (hour < 18) {
+
+          greeting = "Good afternoon";
+
+        } else {
+
+          greeting = "Good evening";
+
+        }
+
+        dashboardGreeting.textContent =
+          firstName
+            ? `${greeting}, ${firstName}`
+            : greeting;
+      }
+    }
+
+
+
+    /*
+     * Authentication succeeded.
+     * Reveal the dashboard.
+     */
+
+    dashboardContainer?.classList.add(
+      "authenticated"
+    );
+
+    dashboardAuthGuard?.classList.add(
+      "hidden"
+    );
+
+    return true;
+  }
+
+
+
+  // ===================================
+  // SIGN OUT
+  // ===================================
+
+  function initSignOut() {
+
+    if (!signOutButton) return;
+
+    signOutButton.addEventListener(
+      "click",
+      () => {
+
+        logout();
+
+      }
+    );
+  }
+
+
+
+  // ===================================
+  // INITIAL AUTH CHECK
+  // ===================================
+
+  if (!checkAuthentication()) {
+
+    /*
+     * Stop the rest of the dashboard
+     * initialization when authentication fails.
+     */
+
+  } else {
+
+    initSignOut();
+
+  }
+
+
+
+  // ===================================
+  // DOM ELEMENTS
+  // ===================================
+
+  const dashboardSidebar =
+    document.getElementById(
+      "dashboardSidebar"
+    );
+
+  const userMenu =
+    document.getElementById(
+      "userMenu"
+    );
+
+  const userMenuTrigger =
+    document.getElementById(
+      "user-menu-trigger"
+    );
+
+  const themeToggle =
+    document.getElementById(
+      "theme-toggle"
+    );
+
+  const dashboardViews =
+    document.querySelectorAll(
+      ".dashboard-view"
+    );
+
+  const dashboardNavItems =
+    document.querySelectorAll(
+      ".dashboard-nav-item"
+    );
+
+  const dashboardTitle =
+    document.getElementById(
+      "dashboardTitle"
+    );
+
+  const dashboardSidebarOverlay =
+    document.getElementById(
+      "dashboardSidebarOverlay"
+    );
+
+  const searchContainer =
+    document.getElementById(
+      "searchContainer"
+    );
+
+  const searchInput =
+    document.getElementById(
+      "searchInput"
+    );
+
+  const searchClose =
+    document.getElementById(
+      "searchClose"
+    );
+
+  const mobileSearchBtn =
+    document.getElementById(
+      "mobileSearchBtn"
+    );
+
+
+
+  // ===================================
+  // STATE
+  // ===================================
+
+  let sidebarCollapsed = false;
+  let currentView = "overview";
+
+
+
+  // ===================================
+  // INITIALIZATION
+  // ===================================
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+      initTheme();
+      initThemeToggle();
+      initSidebar();
+      initUserMenu();
+      initNavigation();
+      initSearch();
+
+    }
+  );
+
+
+
+  // ===================================
+  // SIDEBAR FUNCTIONALITY
+  // ===================================
+
+  function initSidebar() {
+
+    sidebarCollapsed =
+      localStorage.getItem(
+        "dashboard-sidebar-collapsed"
+      ) === "true";
+
+    dashboardSidebar.classList.toggle(
+      "collapsed",
+      sidebarCollapsed
+    );
+
+
+
+    document
+      .querySelectorAll(
+        ".dashboard-sidebar-toggle"
+      )
+      .forEach((toggle) => {
+
+        toggle.addEventListener(
+          "click",
+          toggleSidebar
+        );
+
+      });
+
+
+
+    dashboardSidebarOverlay?.addEventListener(
+      "click",
+      closeSidebar
+    );
+  }
+
+
+
+  function toggleSidebar() {
+
+    sidebarCollapsed =
+      !sidebarCollapsed;
+
+    const isMobile =
+      window.innerWidth <= 1024;
+
+    if (isMobile) {
+
+      const isOpen =
+        dashboardSidebar.classList.contains(
+          "collapsed"
+        );
+
+      dashboardSidebar.classList.toggle(
+        "collapsed",
+        !isOpen
+      );
+
+      dashboardSidebarOverlay?.classList.toggle(
+        "active",
+        !isOpen
+      );
+
+    } else {
+
+      dashboardSidebar.classList.toggle(
+        "collapsed",
+        sidebarCollapsed
+      );
+
+    }
+
+    localStorage.setItem(
+      "dashboard-sidebar-collapsed",
+      sidebarCollapsed.toString()
+    );
+  }
+
+
+
+  function closeSidebar() {
+
+    if (window.innerWidth <= 1024) {
+
+      dashboardSidebar.classList.remove(
+        "collapsed"
+      );
+
+      dashboardSidebarOverlay?.classList.remove(
+        "active"
+      );
+
+    }
+  }
+
+
+
+  // ===================================
+  // USER MENU FUNCTIONALITY
+  // ===================================
+
+  function initUserMenu() {
+
+    if (
+      !userMenuTrigger ||
+      !userMenu
+    ) {
+      return;
+    }
+
+
+
+    userMenuTrigger.addEventListener(
+      "click",
+      (e) => {
+
+        e.stopPropagation();
+
+        userMenu.classList.toggle(
+          "active"
+        );
+
+      }
+    );
+
+
+
+    document.addEventListener(
+      "click",
+      (e) => {
+
+        if (
+          !userMenu.contains(
+            e.target
+          )
+        ) {
+
+          userMenu.classList.remove(
+            "active"
+          );
+
+        }
+
+      }
+    );
+
+
+
+    document.addEventListener(
+      "keydown",
+      (e) => {
+
+        if (
+          e.key === "Escape" &&
+          userMenu.classList.contains(
+            "active"
+          )
+        ) {
+
+          userMenu.classList.remove(
+            "active"
+          );
+
+        }
+
+      }
+    );
+  }
+
+
+
+  // ===================================
+  // NAVIGATION FUNCTIONALITY
+  // ===================================
+
+  function initNavigation() {
+
+    dashboardNavItems.forEach(
+      (item) => {
+
+        item.addEventListener(
+          "click",
+          (e) => {
+
+            e.preventDefault();
+
+            const viewId =
+              item.getAttribute(
+                "data-view"
+              );
+
+            if (viewId) {
+
+              switchView(
+                viewId
+              );
+
+            }
+
+          }
+        );
+
+      }
+    );
+  }
+
+
+
+  function switchView(viewId) {
+
+    dashboardNavItems.forEach(
+      (item) => {
+
+        item.classList.toggle(
+          "active",
+          item.getAttribute(
+            "data-view"
+          ) === viewId
+        );
+
+      }
+    );
+
+
+
+    dashboardViews.forEach(
+      (view) => {
+
+        view.classList.remove(
+          "active"
+        );
+
+      }
+    );
+
+
+
+    const targetView =
+      document.getElementById(
+        viewId
+      );
+
+
+
+    if (targetView) {
+
+      targetView.classList.add(
+        "active"
+      );
+
+      currentView =
+        viewId;
+
+      updatePageTitle(
+        viewId
+      );
+
+    }
+
+
+
+    if (
+      window.innerWidth <= 1024
+    ) {
+
+      closeSidebar();
+
+    }
+  }
+
+
+
+  function updatePageTitle(
+    viewId
+  ) {
+
+    const titles = {
+
+      overview: "Overview",
+
+      projects:
+        "Projects",
+
+      tasks:
+        "Tasks",
+
+      reports:
+        "Reports",
+
+      settings:
+        "Settings",
+
+    };
+
+
+
+    if (dashboardTitle) {
+
+      dashboardTitle.textContent =
+        titles[viewId] ||
+        "Dashboard";
+
+    }
+  }
+
+
+
+  // ===================================
+  // THEME FUNCTIONALITY
+  // ===================================
+
+  function initTheme() {
+
+    const savedTheme =
+      localStorage.getItem(
+        "dashboard-theme"
+      ) ||
+      "light";
+
+    document.documentElement.setAttribute(
+      "data-theme",
+      savedTheme
+    );
+
+    updateThemeToggleUI(
+      savedTheme
+    );
+  }
+
+
+
+  function initThemeToggle() {
+
+    if (!themeToggle) return;
+
+    themeToggle
+      .querySelectorAll(
+        ".theme-option"
+      )
+      .forEach(
+        (option) => {
+
+          option.addEventListener(
+            "click",
+            (e) => {
+
+              e.stopPropagation();
+
+              setTheme(
+                option.getAttribute(
+                  "data-theme"
+                )
+              );
+
+            }
+          );
+
+        }
+      );
+  }
+
+
+
+  function setTheme(theme) {
+
+    document.documentElement.setAttribute(
+      "data-theme",
+      theme
+    );
+
+    localStorage.setItem(
+      "dashboard-theme",
+      theme
+    );
+
+    updateThemeToggleUI(
+      theme
+    );
+  }
+
+
+
+  function updateThemeToggleUI(
+    theme
+  ) {
+
+    if (!themeToggle) return;
+
+    themeToggle
+      .querySelectorAll(
+        ".theme-option"
+      )
+      .forEach(
+        (option) => {
+
+          option.classList.toggle(
+            "active",
+            option.getAttribute(
+              "data-theme"
+            ) === theme
+          );
+
+        }
+      );
+  }
+
+
+
+</script>

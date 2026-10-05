@@ -1,0 +1,2241 @@
+---
+interface Props {
+  projectId: string;
+}
+
+const { projectId } = Astro.props;
+
+const API_BASE = "http://localhost:5000/api";
+---
+
+<div class="programme-revision-form">
+
+  <!-- =========================================================
+       MODE TOGGLE
+  ========================================================== -->
+
+  <div class="mode-toggle">
+    <button
+      type="button"
+      id="createModeBtn"
+      class="mode-btn active"
+      data-mode="create"
+    >
+      Create Revision
+    </button>
+
+    <button
+      type="button"
+      id="editModeBtn"
+      class="mode-btn"
+      data-mode="edit"
+    >
+      Edit Revision
+    </button>
+  </div>
+
+  <!-- =========================================================
+       EDIT REVISION SELECTOR
+  ========================================================== -->
+
+  <div id="editRevisionSection" class="form-section hidden">
+
+    <div class="section-heading">
+      <h3>Select Revision</h3>
+      <p>
+        Select an existing programme revision to edit or manage.
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label for="revisionSelect">
+        Programme Revision
+      </label>
+
+      <select id="revisionSelect">
+        <option value="">Select a revision...</option>
+      </select>
+    </div>
+
+  </div>
+
+  <!-- =========================================================
+       FORM
+  ========================================================== -->
+
+  <form id="programmeRevisionForm">
+
+    <!-- =======================================================
+         GENERAL INFORMATION
+    ======================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+        <h3>General Information</h3>
+        <p>
+          Basic information about this programme revision.
+        </p>
+      </div>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="revisionNumber">
+            Revision Number <span class="required">*</span>
+          </label>
+
+          <input
+            type="text"
+            id="revisionNumber"
+            name="revisionNumber"
+            placeholder="e.g. Rev 02"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="title">
+            Revision Title <span class="required">*</span>
+          </label>
+
+          <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder="e.g. Programme Revision 02"
+            required
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="reason">
+            Reason for Revision <span class="required">*</span>
+          </label>
+
+          <textarea
+            id="reason"
+            name="reason"
+            rows="4"
+            placeholder="Explain why the programme is being revised..."
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="description">
+            Description
+          </label>
+
+          <textarea
+            id="description"
+            name="description"
+            rows="4"
+            placeholder="Provide a general description of the revision..."
+          ></textarea>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         REVISION DETAILS
+    ======================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+        <h3>Revision Details</h3>
+        <p>
+          Define the effective date, status and revision history.
+        </p>
+      </div>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="effectiveDate">
+            Effective Date <span class="required">*</span>
+          </label>
+
+          <input
+            type="date"
+            id="effectiveDate"
+            name="effectiveDate"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="status">
+            Status
+          </label>
+
+          <select id="status" name="status">
+            <option value="Draft">Draft</option>
+            <option value="Submitted">Submitted</option>
+            <option value="Under Review">Under Review</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Superseded">Superseded</option>
+          </select>
+
+          <small>
+            Approved revisions are applied to the programme by the server.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="previousRevision">
+            Previous Revision
+          </label>
+
+          <select id="previousRevision">
+            <option value="">None</option>
+          </select>
+
+          <small>
+            Normally this should reference the immediately preceding revision.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="preparedBy">
+            Prepared By <span class="required">*</span>
+          </label>
+
+          <select id="preparedBy" required>
+            <option value="">Select user...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="document">
+            Programme Document
+          </label>
+
+          <input
+            type="text"
+            id="document"
+            placeholder="Document ID (optional)"
+          />
+
+          <small>
+            Enter the Document ID if this revision is associated with a stored document.
+          </small>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         PROPOSED CHANGES
+    ======================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading change-heading">
+
+        <div>
+          <h3>Proposed Programme Changes</h3>
+
+          <p>
+            Record the changes that this revision proposes. These changes
+            will not affect the actual programme until the revision is approved.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          id="addChangeBtn"
+          class="secondary-btn"
+        >
+          + Add Change
+        </button>
+
+      </div>
+
+      <div id="changesContainer"></div>
+
+      <div id="noChangesMessage" class="empty-message">
+        No programme changes have been added yet.
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         NOTES
+    ======================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+        <h3>Notes</h3>
+        <p>
+          Additional information regarding this revision.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">
+          Notes
+        </label>
+
+        <textarea
+          id="notes"
+          name="notes"
+          rows="5"
+          placeholder="Additional notes..."
+        ></textarea>
+      </div>
+
+    </div>
+
+    <!-- =======================================================
+         APPROVAL INFORMATION
+    ======================================================== -->
+
+    <div
+      id="approvalInfo"
+      class="approval-info hidden"
+    >
+      <div>
+        <strong>Approved Revision</strong>
+        <span id="approvalDetails"></span>
+      </div>
+    </div>
+
+    <!-- =======================================================
+         ACTIONS
+    ======================================================== -->
+
+    <div class="form-actions">
+
+      <button
+        type="button"
+        id="resetBtn"
+        class="secondary-btn"
+      >
+        Reset
+      </button>
+
+      <div class="action-right">
+
+        <button
+          type="submit"
+          id="saveBtn"
+          class="primary-btn"
+        >
+          Save Revision
+        </button>
+
+        <button
+          type="button"
+          id="approveBtn"
+          class="approve-btn hidden"
+        >
+          Approve & Apply Revision
+        </button>
+
+      </div>
+
+    </div>
+
+  </form>
+
+  <div id="formMessage" class="form-message"></div>
+
+</div>
+
+<style>
+
+  .programme-revision-form {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    color: var(--color-text);
+  }
+
+  /* =========================================================
+     MODE TOGGLE
+  ========================================================== */
+
+  .mode-toggle {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 24px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    width: fit-content;
+  }
+
+  .mode-btn {
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+  }
+
+  .mode-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+  }
+
+  .mode-btn.active {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  /* =========================================================
+     SECTIONS
+  ========================================================== */
+
+  .form-section {
+    margin-bottom: 24px;
+    padding: 24px;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+
+  .section-heading {
+    margin-bottom: 22px;
+  }
+
+  .section-heading h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .section-heading p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* =========================================================
+     GRID
+  ========================================================== */
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* =========================================================
+     FORM GROUPS
+  ========================================================== */
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .form-group label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .required {
+    color: var(--color-error);
+  }
+
+  .form-group small {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 13px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-background);
+    color: var(--color-text);
+    font: inherit;
+    outline: none;
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  /* =========================================================
+     CHANGE HEADER
+  ========================================================== */
+
+  .change-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  /* =========================================================
+     CHANGE CARD
+  ========================================================== */
+
+  .change-card {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  .change-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .change-card-title {
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .change-card-body {
+    padding: 18px;
+  }
+
+  .change-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .change-description {
+    grid-column: 1 / -1;
+  }
+
+  .remove-change-btn {
+    border: none;
+    background: transparent;
+    color: var(--color-error);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+
+  .remove-change-btn:hover {
+    background: var(--color-primary-100);
+  }
+
+  /* =========================================================
+     BUTTONS
+  ========================================================== */
+
+  .primary-btn,
+  .secondary-btn,
+  .approve-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .primary-btn {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .primary-btn:hover {
+    background: var(--color-primary-hover);
+  }
+
+  .secondary-btn {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+
+  .secondary-btn:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .approve-btn {
+    background: #16803c;
+    color: white;
+  }
+
+  .approve-btn:hover {
+    filter: brightness(0.92);
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+  }
+
+  .action-right {
+    display: flex;
+    gap: 10px;
+  }
+
+  /* =========================================================
+     APPROVAL
+  ========================================================== */
+
+  .approval-info {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .approval-info > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .approval-info span {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+  }
+
+  /* =========================================================
+     EMPTY
+  ========================================================== */
+
+  .empty-message {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--color-text-secondary);
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  /* =========================================================
+     MESSAGE
+  ========================================================== */
+
+  .form-message {
+    margin-top: 16px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    display: none;
+    font-size: 14px;
+  }
+
+  .form-message.success {
+    display: block;
+    border: 1px solid #16803c;
+  }
+
+  .form-message.error {
+    display: block;
+    border: 1px solid var(--color-error);
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* =========================================================
+     RESPONSIVE
+  ========================================================== */
+
+  @media (max-width: 800px) {
+
+    .form-grid,
+    .change-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .full-width,
+    .change-description {
+      grid-column: auto;
+    }
+
+  }
+
+  @media (max-width: 600px) {
+
+    .mode-toggle {
+      width: 100%;
+    }
+
+    .mode-btn {
+      flex: 1;
+    }
+
+    .form-section {
+      padding: 18px;
+    }
+
+    .section-heading,
+    .section-heading p,
+    .section-heading h3,
+    .form-group label,
+    .form-group small {
+      text-align: center;
+    }
+
+    /*
+      Form controls deliberately remain left aligned.
+    */
+
+    input,
+    select,
+    textarea {
+      text-align: left;
+    }
+
+    .change-heading {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+    }
+
+    .change-heading .secondary-btn {
+      width: 100%;
+    }
+
+    .change-card-header {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .form-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .action-right {
+      flex-direction: column;
+    }
+
+    .form-actions button {
+      width: 100%;
+    }
+
+  }
+
+</style>
+
+<script define:vars={{ projectId, API_BASE }}>
+
+  let mode = "create";
+  let selectedRevisionId = null;
+
+  let stages = [];
+  let activitiesByStage = {};
+  let users = [];
+  let revisions = [];
+
+  const form = document.getElementById("programmeRevisionForm");
+  const createModeBtn = document.getElementById("createModeBtn");
+  const editModeBtn = document.getElementById("editModeBtn");
+  const editRevisionSection = document.getElementById("editRevisionSection");
+  const revisionSelect = document.getElementById("revisionSelect");
+
+  const changesContainer = document.getElementById("changesContainer");
+  const noChangesMessage = document.getElementById("noChangesMessage");
+
+  const addChangeBtn = document.getElementById("addChangeBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const saveBtn = document.getElementById("saveBtn");
+  const approveBtn = document.getElementById("approveBtn");
+
+  const formMessage = document.getElementById("formMessage");
+  const approvalInfo = document.getElementById("approvalInfo");
+  const approvalDetails = document.getElementById("approvalDetails");
+
+  const previousRevisionSelect =
+    document.getElementById("previousRevision");
+
+  const preparedBySelect =
+    document.getElementById("preparedBy");
+
+  const statusSelect =
+    document.getElementById("status");
+
+  /* =========================================================
+     HELPERS
+  ========================================================== */
+
+  function showMessage(message, type = "success") {
+    formMessage.textContent = message;
+    formMessage.className = `form-message ${type}`;
+
+    window.scrollTo({
+      top: formMessage.getBoundingClientRect().top + window.scrollY - 100,
+      behavior: "smooth"
+    });
+  }
+
+  function clearMessage() {
+    formMessage.textContent = "";
+    formMessage.className = "form-message";
+  }
+
+  async function apiRequest(url, options = {}) {
+
+    const response = await fetch(`${API_BASE}${url}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      },
+      ...options
+    });
+
+    let data = null;
+
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message ||
+        data?.error ||
+        "The server returned an error."
+      );
+    }
+
+    return data;
+  }
+
+  function extractArray(response, keys = []) {
+
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    for (const key of keys) {
+      if (Array.isArray(response?.[key])) {
+        return response[key];
+      }
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    return [];
+  }
+
+  function getId(value) {
+    if (!value) return "";
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    return value._id || value.id || "";
+  }
+
+  function formatDateForInput(date) {
+
+    if (!date) return "";
+
+    const d = new Date(date);
+
+    if (Number.isNaN(d.getTime())) {
+      return "";
+    }
+
+    return d.toISOString().split("T")[0];
+  }
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /* =========================================================
+     LOAD STAGES
+  ========================================================== */
+
+  async function loadStages() {
+
+    const response = await apiRequest(
+      `/stages/project/${projectId}`
+    );
+
+    stages = extractArray(response, [
+      "stages",
+      "data"
+    ]);
+
+    /*
+      Load sub-stages recursively where required.
+    */
+
+    const allStages = [...stages];
+
+    async function loadChildren(stageId) {
+
+      try {
+
+        const response = await apiRequest(
+          `/stages/${stageId}/substages`
+        );
+
+        const children = extractArray(response, [
+          "stages",
+          "substages",
+          "data"
+        ]);
+
+        for (const child of children) {
+
+          allStages.push(child);
+
+          const childId = getId(child);
+
+          if (childId) {
+            await loadChildren(childId);
+          }
+        }
+
+      } catch (error) {
+
+        console.warn(
+          `Unable to load substages for ${stageId}`,
+          error
+        );
+
+      }
+    }
+
+    const rootStages = [...stages];
+
+    for (const stage of rootStages) {
+
+      const stageId = getId(stage);
+
+      if (stageId) {
+        await loadChildren(stageId);
+      }
+    }
+
+    stages = allStages;
+
+    sortStages();
+  }
+
+  function sortStages() {
+
+    stages.sort((a, b) => {
+
+      const orderA = Number(a.sortOrder ?? 0);
+      const orderB = Number(b.sortOrder ?? 0);
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      return String(a.name || "")
+        .localeCompare(String(b.name || ""));
+    });
+  }
+
+  /* =========================================================
+     LOAD ACTIVITIES FOR STAGE
+  ========================================================== */
+
+  async function loadActivitiesForStage(stageId) {
+
+    if (!stageId) {
+      return [];
+    }
+
+    if (activitiesByStage[stageId]) {
+      return activitiesByStage[stageId];
+    }
+
+    try {
+
+      const response = await apiRequest(
+        `/activities/stage/${stageId}`
+      );
+
+      const activities = extractArray(response, [
+        "activities",
+        "data"
+      ]);
+
+      activitiesByStage[stageId] = activities;
+
+      return activities;
+
+    } catch (error) {
+
+      console.error(
+        `Failed to load activities for stage ${stageId}`,
+        error
+      );
+
+      activitiesByStage[stageId] = [];
+
+      return [];
+    }
+  }
+
+  /* =========================================================
+     LOAD USERS
+  ========================================================== */
+
+  async function loadUsers() {
+
+    const response = await apiRequest("/users");
+
+    users = extractArray(response, [
+      "users",
+      "data"
+    ]);
+
+    preparedBySelect.innerHTML =
+      `<option value="">Select user...</option>`;
+
+    users
+      .filter(user => user.isActive !== false)
+      .sort((a, b) => {
+
+        const nameA =
+          `${a.firstName || ""} ${a.lastName || ""}`.trim();
+
+        const nameB =
+          `${b.firstName || ""} ${b.lastName || ""}`.trim();
+
+        return nameA.localeCompare(nameB);
+      })
+      .forEach(user => {
+
+        const option = document.createElement("option");
+
+        option.value = getId(user);
+
+        option.textContent =
+          `${user.firstName || ""} ${user.lastName || ""}`.trim();
+
+        preparedBySelect.appendChild(option);
+      });
+  }
+
+  /* =========================================================
+     LOAD REVISIONS
+  ========================================================== */
+
+  async function loadRevisions() {
+
+    const response = await apiRequest(
+      `/programme/project/${projectId}`
+    );
+
+    revisions = extractArray(response, [
+      "revisions",
+      "programmes",
+      "programmeRevisions",
+      "data"
+    ]);
+
+    renderRevisionSelectors();
+  }
+
+  function renderRevisionSelectors() {
+
+    revisionSelect.innerHTML =
+      `<option value="">Select a revision...</option>`;
+
+    previousRevisionSelect.innerHTML =
+      `<option value="">None</option>`;
+
+    const sorted = [...revisions].sort((a, b) => {
+
+      const dateA = new Date(
+        a.createdAt || a.effectiveDate || 0
+      );
+
+      const dateB = new Date(
+        b.createdAt || b.effectiveDate || 0
+      );
+
+      return dateB - dateA;
+    });
+
+    sorted.forEach(revision => {
+
+      const id = getId(revision);
+
+      if (!id) return;
+
+      const label =
+        `${revision.revisionNumber || "Revision"} — ` +
+        `${revision.title || ""} ` +
+        `(${revision.status || "Draft"})`;
+
+      const option = document.createElement("option");
+
+      option.value = id;
+      option.textContent = label;
+
+      revisionSelect.appendChild(option);
+
+      /*
+        Don't allow the currently edited revision to be its
+        own previous revision.
+      */
+
+      if (id !== selectedRevisionId) {
+
+        const previousOption =
+          document.createElement("option");
+
+        previousOption.value = id;
+        previousOption.textContent = label;
+
+        previousRevisionSelect.appendChild(
+          previousOption
+        );
+      }
+    });
+  }
+
+  /* =========================================================
+     STAGE OPTIONS
+  ========================================================== */
+
+  function buildStageOptions(selectedId = "") {
+
+    const fragment = document.createDocumentFragment();
+
+    const blank = document.createElement("option");
+
+    blank.value = "";
+    blank.textContent = "Select stage...";
+
+    fragment.appendChild(blank);
+
+    stages.forEach(stage => {
+
+      const option = document.createElement("option");
+
+      option.value = getId(stage);
+
+      const level = Number(stage.level ?? 0);
+
+      option.textContent =
+        `${"— ".repeat(level)}${stage.name || "Unnamed Stage"}`;
+
+      if (getId(stage) === String(selectedId)) {
+        option.selected = true;
+      }
+
+      fragment.appendChild(option);
+    });
+
+    return fragment;
+  }
+
+  /* =========================================================
+     ADD CHANGE
+  ========================================================== */
+
+  async function addChange(change = {}) {
+
+    const index =
+      changesContainer.querySelectorAll(".change-card").length;
+
+    const stageId =
+      getId(change.stage);
+
+    const activityId =
+      getId(change.activity);
+
+    const card = document.createElement("div");
+
+    card.className = "change-card";
+
+    card.dataset.index = index;
+
+    card.innerHTML = `
+      <div class="change-card-header">
+
+        <div class="change-card-title">
+          Change ${index + 1}
+        </div>
+
+        <button
+          type="button"
+          class="remove-change-btn"
+        >
+          Remove
+        </button>
+
+      </div>
+
+      <div class="change-card-body">
+
+        <div class="change-grid">
+
+          <div class="form-group">
+
+            <label>
+              Stage
+            </label>
+
+            <select
+              class="change-stage"
+            ></select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              Activity
+            </label>
+
+            <select
+              class="change-activity"
+            >
+              <option value="">
+                No specific activity
+              </option>
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              Change Type
+            </label>
+
+            <select
+              class="change-type"
+            >
+
+              <option value="Added">
+                Added
+              </option>
+
+              <option value="Modified">
+                Modified
+              </option>
+
+              <option value="Removed">
+                Removed
+              </option>
+
+              <option value="Rescheduled">
+                Rescheduled
+              </option>
+
+              <option value="Progress Updated">
+                Progress Updated
+              </option>
+
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              Description
+            </label>
+
+            <input
+              type="text"
+              class="change-description"
+              placeholder="Describe the proposed change..."
+            />
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              Old Start Date
+            </label>
+
+            <input
+              type="date"
+              class="old-start"
+            />
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              New Start Date
+            </label>
+
+            <input
+              type="date"
+              class="new-start"
+            />
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              Old End Date
+            </label>
+
+            <input
+              type="date"
+              class="old-end"
+            />
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              New End Date
+            </label>
+
+            <input
+              type="date"
+              class="new-end"
+            />
+
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    const stageSelect =
+      card.querySelector(".change-stage");
+
+    const activitySelect =
+      card.querySelector(".change-activity");
+
+    stageSelect.appendChild(
+      buildStageOptions(stageId)
+    );
+
+    card.querySelector(".change-type").value =
+      change.changeType || "Modified";
+
+    card.querySelector(".change-description").value =
+      change.description || "";
+
+    card.querySelector(".old-start").value =
+      formatDateForInput(change.oldStartDate);
+
+    card.querySelector(".new-start").value =
+      formatDateForInput(change.newStartDate);
+
+    card.querySelector(".old-end").value =
+      formatDateForInput(change.oldEndDate);
+
+    card.querySelector(".new-end").value =
+      formatDateForInput(change.newEndDate);
+
+    stageSelect.addEventListener(
+      "change",
+      async () => {
+
+        await populateActivitySelect(
+          card,
+          stageSelect.value,
+          ""
+        );
+      }
+    );
+
+    card
+      .querySelector(".remove-change-btn")
+      .addEventListener("click", () => {
+
+        card.remove();
+
+        renumberChanges();
+
+        updateEmptyChangesMessage();
+      });
+
+    changesContainer.appendChild(card);
+
+    if (stageId) {
+
+      await populateActivitySelect(
+        card,
+        stageId,
+        activityId
+      );
+    }
+
+    updateEmptyChangesMessage();
+  }
+
+  /* =========================================================
+     POPULATE ACTIVITY
+  ========================================================== */
+
+  async function populateActivitySelect(
+    card,
+    stageId,
+    selectedActivityId = ""
+  ) {
+
+    const select =
+      card.querySelector(".change-activity");
+
+    select.innerHTML = `
+      <option value="">
+        No specific activity
+      </option>
+    `;
+
+    if (!stageId) {
+      return;
+    }
+
+    const activities =
+      await loadActivitiesForStage(stageId);
+
+    activities.forEach(activity => {
+
+      const option =
+        document.createElement("option");
+
+      option.value = getId(activity);
+
+      option.textContent =
+        activity.name || "Unnamed Activity";
+
+      if (
+        getId(activity) ===
+        String(selectedActivityId)
+      ) {
+        option.selected = true;
+      }
+
+      select.appendChild(option);
+    });
+  }
+
+  /* =========================================================
+     RENUMBER
+  ========================================================== */
+
+  function renumberChanges() {
+
+    const cards =
+      changesContainer.querySelectorAll(".change-card");
+
+    cards.forEach((card, index) => {
+
+      card.dataset.index = index;
+
+      const title =
+        card.querySelector(".change-card-title");
+
+      if (title) {
+        title.textContent =
+          `Change ${index + 1}`;
+      }
+    });
+  }
+
+  function updateEmptyChangesMessage() {
+
+    const hasChanges =
+      changesContainer.querySelectorAll(".change-card").length > 0;
+
+    noChangesMessage.classList.toggle(
+      "hidden",
+      hasChanges
+    );
+  }
+
+  /* =========================================================
+     COLLECT CHANGES
+  ========================================================== */
+
+  function collectChanges() {
+
+    const cards =
+      changesContainer.querySelectorAll(".change-card");
+
+    return Array.from(cards).map(card => {
+
+      const stage =
+        card.querySelector(".change-stage").value;
+
+      const activity =
+        card.querySelector(".change-activity").value;
+
+      const changeType =
+        card.querySelector(".change-type").value;
+
+      const description =
+        card.querySelector(".change-description").value.trim();
+
+      const oldStartDate =
+        card.querySelector(".old-start").value;
+
+      const newStartDate =
+        card.querySelector(".new-start").value;
+
+      const oldEndDate =
+        card.querySelector(".old-end").value;
+
+      const newEndDate =
+        card.querySelector(".new-end").value;
+
+      const change = {
+        changeType,
+        description,
+        oldStartDate: oldStartDate || undefined,
+        newStartDate: newStartDate || undefined,
+        oldEndDate: oldEndDate || undefined,
+        newEndDate: newEndDate || undefined
+      };
+
+      if (stage) {
+        change.stage = stage;
+      }
+
+      if (activity) {
+        change.activity = activity;
+      }
+
+      return change;
+    });
+  }
+
+  /* =========================================================
+     RESET
+  ========================================================== */
+
+  function resetForm() {
+
+    selectedRevisionId = null;
+
+    form.reset();
+
+    changesContainer.innerHTML = "";
+
+    approvalInfo.classList.add("hidden");
+    approveBtn.classList.add("hidden");
+
+    saveBtn.classList.remove("hidden");
+
+    addChange();
+
+    previousRevisionSelect.innerHTML =
+      `<option value="">None</option>`;
+
+    renderRevisionSelectors();
+
+    clearMessage();
+  }
+
+  /* =========================================================
+     POPULATE FORM
+  ========================================================== */
+
+  async function populateForm(revision) {
+
+    selectedRevisionId =
+      getId(revision);
+
+    document.getElementById("revisionNumber").value =
+      revision.revisionNumber || "";
+
+    document.getElementById("title").value =
+      revision.title || "";
+
+    document.getElementById("reason").value =
+      revision.reason || "";
+
+    document.getElementById("description").value =
+      revision.description || "";
+
+    document.getElementById("effectiveDate").value =
+      formatDateForInput(revision.effectiveDate);
+
+    statusSelect.value =
+      revision.status || "Draft";
+
+    document.getElementById("document").value =
+      getId(revision.document);
+
+    document.getElementById("notes").value =
+      revision.notes || "";
+
+    preparedBySelect.value =
+      getId(revision.preparedBy);
+
+    renderRevisionSelectors();
+
+    previousRevisionSelect.value =
+      getId(revision.previousRevision);
+
+    changesContainer.innerHTML = "";
+
+    const changes =
+      Array.isArray(revision.changes)
+        ? revision.changes
+        : [];
+
+    for (const change of changes) {
+      await addChange(change);
+    }
+
+    if (changes.length === 0) {
+      await addChange();
+    }
+
+    updateApprovalInterface(revision);
+    updateEmptyChangesMessage();
+  }
+
+  /* =========================================================
+     LOAD SINGLE REVISION
+  ========================================================== */
+
+  async function loadRevision(id) {
+
+    if (!id) {
+      return;
+    }
+
+    try {
+
+      const response =
+        await apiRequest(`/programme/${id}`);
+
+      const revision =
+        response?.revision ||
+        response?.data ||
+        response;
+
+      await populateForm(revision);
+
+    } catch (error) {
+
+      console.error(error);
+
+      showMessage(
+        error.message ||
+        "Unable to load programme revision.",
+        "error"
+      );
+    }
+  }
+
+  /* =========================================================
+     APPROVAL UI
+  ========================================================== */
+
+  function updateApprovalInterface(revision) {
+
+    approvalInfo.classList.add("hidden");
+    approveBtn.classList.add("hidden");
+
+    if (!revision) {
+      return;
+    }
+
+    /*
+      Approved and Superseded revisions are historical records.
+      They should not be edited.
+    */
+
+    const locked =
+      ["Approved", "Superseded"].includes(
+        revision.status
+      );
+
+    if (locked) {
+
+      saveBtn.classList.add("hidden");
+
+      const approvedBy =
+        revision.approvedBy
+          ? (
+              revision.approvedBy.firstName
+                ? `${revision.approvedBy.firstName} ${revision.approvedBy.lastName || ""}`.trim()
+                : getId(revision.approvedBy)
+            )
+          : "Unknown";
+
+      approvalDetails.textContent =
+        `Approved by ${approvedBy}` +
+        (
+          revision.approvedAt
+            ? ` on ${new Date(revision.approvedAt).toLocaleDateString()}`
+            : ""
+        );
+
+      approvalInfo.classList.remove("hidden");
+
+      return;
+    }
+
+    saveBtn.classList.remove("hidden");
+
+    /*
+      Only revisions that have been submitted or are under review
+      can be sent through the approval operation.
+    */
+
+    if (
+      revision.status === "Submitted" ||
+      revision.status === "Under Review"
+    ) {
+      approveBtn.classList.remove("hidden");
+    }
+  }
+
+  /* =========================================================
+     MODE
+  ========================================================== */
+
+  function setMode(newMode) {
+
+    mode = newMode;
+
+    if (mode === "create") {
+
+      createModeBtn.classList.add("active");
+      editModeBtn.classList.remove("active");
+
+      editRevisionSection.classList.add("hidden");
+
+      selectedRevisionId = null;
+
+      form.reset();
+
+      statusSelect.value = "Draft";
+
+      changesContainer.innerHTML = "";
+
+      addChange();
+
+      saveBtn.classList.remove("hidden");
+      approveBtn.classList.add("hidden");
+      approvalInfo.classList.add("hidden");
+
+      renderRevisionSelectors();
+
+    } else {
+
+      createModeBtn.classList.remove("active");
+      editModeBtn.classList.add("active");
+
+      editRevisionSection.classList.remove("hidden");
+
+      selectedRevisionId = null;
+
+      form.reset();
+
+      changesContainer.innerHTML = "";
+
+      approvalInfo.classList.add("hidden");
+      approveBtn.classList.add("hidden");
+
+      loadRevisions();
+    }
+
+    clearMessage();
+  }
+
+  /* =========================================================
+     SAVE
+  ========================================================== */
+
+  async function saveRevision(event) {
+
+    event.preventDefault();
+
+    clearMessage();
+
+    const revisionNumber =
+      document.getElementById("revisionNumber").value.trim();
+
+    const title =
+      document.getElementById("title").value.trim();
+
+    const reason =
+      document.getElementById("reason").value.trim();
+
+    const effectiveDate =
+      document.getElementById("effectiveDate").value;
+
+    const preparedBy =
+      preparedBySelect.value;
+
+    if (!revisionNumber) {
+      showMessage(
+        "Please enter a revision number.",
+        "error"
+      );
+      return;
+    }
+
+    if (!title) {
+      showMessage(
+        "Please enter a revision title.",
+        "error"
+      );
+      return;
+    }
+
+    if (!reason) {
+      showMessage(
+        "Please provide the reason for the revision.",
+        "error"
+      );
+      return;
+    }
+
+    if (!effectiveDate) {
+      showMessage(
+        "Please select an effective date.",
+        "error"
+      );
+      return;
+    }
+
+    if (!preparedBy) {
+      showMessage(
+        "Please select the person who prepared the revision.",
+        "error"
+      );
+      return;
+    }
+
+    const changes = collectChanges();
+
+    /*
+      Validate every change.
+    */
+
+    for (let i = 0; i < changes.length; i++) {
+
+      const change = changes[i];
+
+      if (!change.stage && !change.activity) {
+
+        showMessage(
+          `Change ${i + 1}: please select a stage or activity.`,
+          "error"
+        );
+
+        return;
+      }
+
+      if (
+        change.activity &&
+        !change.stage
+      ) {
+
+        showMessage(
+          `Change ${i + 1}: an activity must belong to a stage.`,
+          "error"
+        );
+
+        return;
+      }
+
+      if (
+        change.newStartDate &&
+        change.oldStartDate &&
+        change.changeType === "Rescheduled"
+      ) {
+
+        /*
+          No restriction is imposed here.
+          Earlier or later dates can both be legitimate
+          programme revisions.
+        */
+      }
+    }
+
+    const payload = {
+
+      /*
+        Project is required when creating a revision.
+        It is deliberately omitted when updating.
+      */
+
+      ...(mode === "create"
+        ? { project: projectId }
+        : {}),
+
+      revisionNumber,
+      title,
+      reason,
+      effectiveDate,
+
+      description:
+        document
+          .getElementById("description")
+          .value
+          .trim(),
+
+      previousRevision:
+        previousRevisionSelect.value || null,
+
+      document:
+        document
+          .getElementById("document")
+          .value
+          .trim() || null,
+
+      status:
+        statusSelect.value,
+
+      preparedBy,
+
+      changes,
+
+      notes:
+        document
+          .getElementById("notes")
+          .value
+          .trim()
+    };
+
+    /*
+      Important:
+      This request ONLY creates/updates ProgrammeRevision.
+      It does not update Stage or Activity records.
+    */
+
+    try {
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
+
+      let response;
+
+      if (
+        mode === "edit" &&
+        selectedRevisionId
+      ) {
+
+        response = await apiRequest(
+          `/programme/${selectedRevisionId}`,
+          {
+            method: "PUT",
+            body: JSON.stringify(payload)
+          }
+        );
+
+      } else {
+
+        response = await apiRequest(
+          `/programme`,
+          {
+            method: "POST",
+            body: JSON.stringify(payload)
+          }
+        );
+      }
+
+      const revision =
+        response?.revision ||
+        response?.data ||
+        response;
+
+      selectedRevisionId =
+        getId(revision);
+
+      showMessage(
+        mode === "create"
+          ? "Programme revision created successfully."
+          : "Programme revision updated successfully.",
+        "success"
+      );
+
+      if (mode === "create") {
+        await loadRevisions();
+      }
+
+      await populateForm(revision);
+
+      document.dispatchEvent(
+        new CustomEvent(
+          "programme-revision:saved",
+          {
+            detail: {
+              mode,
+              revision
+            }
+          }
+        )
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      showMessage(
+        error.message ||
+        "Unable to save programme revision.",
+        "error"
+      );
+
+    } finally {
+
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Revision";
+    }
+  }
+
+  /* =========================================================
+     APPROVE REVISION
+  ========================================================== */
+
+  async function approveRevision() {
+
+    if (!selectedRevisionId) {
+      showMessage(
+        "Please select a programme revision first.",
+        "error"
+      );
+      return;
+    }
+
+    const revision =
+      revisions.find(
+        item =>
+          getId(item) === selectedRevisionId
+      );
+
+    /*
+      Confirmation is intentionally explicit because this
+      operation modifies the actual programme.
+    */
+
+    const confirmed =
+      window.confirm(
+        "Approve this programme revision?\n\n" +
+        "This will apply its recorded changes to the " +
+        "programme's Stages and Activities and cannot " +
+        "be treated as a simple draft edit."
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+
+      approveBtn.disabled = true;
+      approveBtn.textContent = "Applying Revision...";
+
+      /*
+        The backend approval endpoint is responsible for:
+
+        1. Validating the revision
+        2. Applying all changes
+        3. Recording approvedBy / approvedAt
+        4. Superseding the previous revision
+        5. Committing everything transactionally
+      */
+
+      const response =
+        await apiRequest(
+          `/programme/${selectedRevisionId}/approve`,
+          {
+            method: "PATCH",
+            body: JSON.stringify({})
+          }
+        );
+
+      const approvedRevision =
+        response?.revision ||
+        response?.data ||
+        response;
+
+      showMessage(
+        "Programme revision approved and applied successfully.",
+        "success"
+      );
+
+      await loadRevisions();
+
+      await populateForm(
+        approvedRevision
+      );
+
+      document.dispatchEvent(
+        new CustomEvent(
+          "programme-revision:approved",
+          {
+            detail: {
+              revision: approvedRevision
+            }
+          }
+        )
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      showMessage(
+        error.message ||
+        "Unable to approve programme revision.",
+        "error"
+      );
+
+    } finally {
+
+      approveBtn.disabled = false;
+      approveBtn.textContent = "Approve & Apply Revision";
+    }
+  }
+
+  /* =========================================================
+     EVENTS
+  ========================================================== */
+
+  createModeBtn.addEventListener(
+    "click",
+    () => setMode("create")
+  );
+
+  editModeBtn.addEventListener(
+    "click",
+    () => setMode("edit")
+  );
+
+  revisionSelect.addEventListener(
+    "change",
+    async event => {
+
+      const id =
+        event.target.value;
+
+      if (!id) {
+        return;
+      }
+
+      await loadRevision(id);
+    }
+  );
+
+  addChangeBtn.addEventListener(
+    "click",
+    () => addChange()
+  );
+
+  resetBtn.addEventListener(
+    "click",
+    () => {
+
+      if (mode === "create") {
+        resetForm();
+      } else {
+        revisionSelect.value = "";
+        selectedRevisionId = null;
+        form.reset();
+        changesContainer.innerHTML = "";
+        approvalInfo.classList.add("hidden");
+        approveBtn.classList.add("hidden");
+        saveBtn.classList.remove("hidden");
+        clearMessage();
+      }
+
+    }
+  );
+
+  approveBtn.addEventListener(
+    "click",
+    approveRevision
+  );
+
+  form.addEventListener(
+    "submit",
+    saveRevision
+  );
+
+  /* =========================================================
+     INITIALISE
+  ========================================================== */
+
+  async function initialise() {
+
+    try {
+
+      await Promise.all([
+        loadStages(),
+        loadUsers(),
+        loadRevisions()
+      ]);
+
+      await addChange();
+
+    } catch (error) {
+
+      console.error(error);
+
+      showMessage(
+        error.message ||
+        "Unable to initialise programme revision form.",
+        "error"
+      );
+    }
+  }
+
+  initialise();
+
+</script>

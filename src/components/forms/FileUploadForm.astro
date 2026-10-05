@@ -1,0 +1,1383 @@
+---
+interface Props {
+  projectId: string;
+}
+
+const { projectId } = Astro.props;
+---
+
+<div class="upload-form">
+  <form id="fileUploadForm">
+    <!-- HEADER -->
+    <div class="form-header">
+      <div>
+        <h2>Upload Files</h2>
+        <p>Upload photos and documents related to a project stage or activity.</p>
+      </div>
+    </div>
+
+    <!-- FILE TYPE -->
+    <section class="form-section">
+      <h3>File Type</h3>
+
+      <div class="file-type-options">
+        <label class="file-type-option active" id="photoOption">
+          <input
+            type="radio"
+            name="fileType"
+            value="photo"
+            checked
+          />
+          <span class="material-symbols-rounded">photo_library</span>
+          <span>
+            <strong>Photos</strong>
+            <small>Site photos and progress images</small>
+          </span>
+        </label>
+
+        <label class="file-type-option" id="documentOption">
+          <input
+            type="radio"
+            name="fileType"
+            value="document"
+          />
+          <span class="material-symbols-rounded">description</span>
+          <span>
+            <strong>Documents</strong>
+            <small>Reports, drawings and other files</small>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <!-- FILE SELECTION -->
+    <section class="form-section">
+      <h3>Select Files</h3>
+
+      <div class="drop-zone" id="dropZone">
+        <span class="material-symbols-rounded upload-icon">
+          cloud_upload
+        </span>
+
+        <h4 id="dropTitle">Drag and drop your photos here</h4>
+
+        <p id="dropDescription">
+          or click below to browse your device
+        </p>
+
+        <button type="button" class="browse-btn" id="browseBtn">
+          <span class="material-symbols-rounded">folder_open</span>
+          Browse Files
+        </button>
+
+        <input
+          type="file"
+          id="fileInput"
+          name="files"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          hidden
+        />
+
+        <small id="fileRestrictions">
+          JPG, PNG or WEBP · Maximum 10 MB per image
+        </small>
+      </div>
+
+      <div class="selected-files-header" id="selectedFilesHeader" hidden>
+        <strong id="selectedFilesCount">Selected files (0)</strong>
+
+        <button type="button" class="text-btn" id="clearFilesBtn">
+          Clear all
+        </button>
+      </div>
+
+      <div id="filePreviewList" class="file-preview-list"></div>
+    </section>
+
+    <!-- PROJECT REFERENCE -->
+    <section class="form-section">
+      <h3>Project Reference</h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="stage">Stage</label>
+          <select id="stage" name="stage">
+            <option value="">Project-level attachment</option>
+          </select>
+          <small>Optional. Select a stage to narrow the activity list.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="activity">Activity</label>
+          <select id="activity" name="activity" disabled>
+            <option value="">Select a stage first</option>
+          </select>
+          <small>Optional. Link the files to a specific activity.</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHOTO METADATA -->
+    <section class="form-section" id="photoFields">
+      <h3>Photo Information</h3>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="photoTitle">Title <span class="required">*</span></label>
+          <input
+            type="text"
+            id="photoTitle"
+            name="title"
+            placeholder="e.g. Stage 1 Earthworks Progress"
+            required
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="photoDescription">Description</label>
+          <textarea
+            id="photoDescription"
+            name="description"
+            rows="3"
+            placeholder="Describe the work shown in the photos..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="takenAt">Date Taken</label>
+          <input type="date" id="takenAt" name="takenAt" />
+        </div>
+
+        <div class="form-group">
+          <label for="photoTags">Tags</label>
+          <input
+            type="text"
+            id="photoTags"
+            name="tags"
+            placeholder="earthworks, roads, inspection"
+          />
+          <small>Separate tags with commas.</small>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="photoLocation">Location Description</label>
+          <input
+            type="text"
+            id="photoLocation"
+            name="locationDescription"
+            placeholder="e.g. Building Pad 14, Stage 1"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- DOCUMENT METADATA -->
+    <section class="form-section" id="documentFields" hidden>
+      <h3>Document Information</h3>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="documentTitle">
+            Title <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="documentTitle"
+            name="title"
+            placeholder="e.g. Earthworks Progress Report"
+            disabled
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="documentNumber">Document Number</label>
+          <input
+            type="text"
+            id="documentNumber"
+            name="documentNumber"
+            placeholder="e.g. SK-CW-001"
+            disabled
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="category">Category</label>
+          <select id="category" name="category" disabled>
+            <option value="Other">Other</option>
+            <option value="Programme">Programme</option>
+            <option value="Drawing">Drawing</option>
+            <option value="Plan">Plan</option>
+            <option value="Report">Report</option>
+            <option value="Contract">Contract</option>
+            <option value="Correspondence">Correspondence</option>
+            <option value="Approval">Approval</option>
+            <option value="Survey">Survey</option>
+            <option value="Meeting">Meeting</option>
+            <option value="Quotation">Quotation</option>
+            <option value="Invoice">Invoice</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="version">Version</label>
+          <input
+            type="text"
+            id="version"
+            name="version"
+            value="1.0"
+            disabled
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="documentDate">Document Date</label>
+          <input
+            type="date"
+            id="documentDate"
+            name="documentDate"
+            disabled
+          />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="documentDescription">Description</label>
+          <textarea
+            id="documentDescription"
+            name="description"
+            rows="3"
+            placeholder="Describe the document..."
+            disabled
+          ></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="documentNotes">Notes</label>
+          <textarea
+            id="documentNotes"
+            name="notes"
+            rows="2"
+            placeholder="Additional information..."
+            disabled
+          ></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- UPLOADER -->
+    <section class="form-section">
+      <h3>Upload Information</h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="uploadedBy">
+            Uploaded By <span class="required">*</span>
+          </label>
+          <select id="uploadedBy" name="uploadedBy" required>
+            <option value="">Loading users...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="organisation">Organisation</label>
+          <select id="organisation" name="organisation">
+            <option value="">No organisation selected</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEEDBACK -->
+    <div id="formMessage" class="form-message" role="status" hidden></div>
+
+    <div class="upload-progress" id="uploadProgress" hidden>
+      <div class="progress-track">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <small id="progressText">Uploading...</small>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="form-actions">
+      <button type="reset" class="btn-secondary" id="resetBtn">
+        Reset
+      </button>
+
+      <button type="submit" class="btn-primary" id="submitBtn">
+        <span class="material-symbols-rounded">cloud_upload</span>
+        <span id="submitText">Upload Photos</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script define:vars={{ projectId }}>
+  const API_BASE = "http://localhost:5000/api";
+
+  const form = document.getElementById("fileUploadForm");
+  const fileInput = document.getElementById("fileInput");
+  const dropZone = document.getElementById("dropZone");
+  const browseBtn = document.getElementById("browseBtn");
+  const stageSelect = document.getElementById("stage");
+  const activitySelect = document.getElementById("activity");
+  const photoOption = document.getElementById("photoOption");
+  const documentOption = document.getElementById("documentOption");
+  const photoFields = document.getElementById("photoFields");
+  const documentFields = document.getElementById("documentFields");
+  const previewList = document.getElementById("filePreviewList");
+  const filesHeader = document.getElementById("selectedFilesHeader");
+  const filesCount = document.getElementById("selectedFilesCount");
+  const clearFilesBtn = document.getElementById("clearFilesBtn");
+  const formMessage = document.getElementById("formMessage");
+  const submitBtn = document.getElementById("submitBtn");
+  const submitText = document.getElementById("submitText");
+  const progressContainer = document.getElementById("uploadProgress");
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+
+  let selectedFiles = [];
+  let stages = [];
+  let activities = [];
+  let users = [];
+  let organisations = [];
+  let objectUrls = [];
+
+  const PHOTO_MAX_SIZE = 10 * 1024 * 1024;
+  const DOCUMENT_MAX_SIZE = 25 * 1024 * 1024;
+
+  const photoTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ];
+
+  const documentTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "text/csv",
+  ];
+
+  const documentExtensions = [
+    "pdf", "doc", "docx", "xls", "xlsx",
+    "ppt", "pptx", "txt", "csv",
+  ];
+
+  const getFileType = () =>
+    form.querySelector('input[name="fileType"]:checked').value;
+
+  const getId = (item) =>
+    item?._id || item?.id || "";
+
+  const getName = (item) =>
+    item?.name ||
+    [item?.firstName, item?.lastName].filter(Boolean).join(" ") ||
+    item?.title ||
+    item?.code ||
+    "Unnamed";
+
+  const extractArray = (response) => {
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.data)) return response.data;
+    return [];
+  };
+
+  async function fetchArray(url) {
+  console.log("Fetching:", url);
+
+  const response = await fetch(url);
+
+  const result = await response.json();
+
+  console.log("API response:", result);
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || `Request failed: ${response.status}`
+    );
+  }
+
+  // Support several possible API response structures
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (Array.isArray(result.data)) {
+    return result.data;
+  }
+
+  if (Array.isArray(result.activities)) {
+    return result.activities;
+  }
+
+  return [];
+}
+
+  function showMessage(message, type = "error") {
+    formMessage.textContent = message;
+    formMessage.className = `form-message ${type}`;
+    formMessage.hidden = false;
+  }
+
+  function hideMessage() {
+    formMessage.hidden = true;
+    formMessage.textContent = "";
+  }
+
+  function populateSelect(select, items, placeholder, selectedValue = "") {
+    select.replaceChildren();
+
+    const firstOption = document.createElement("option");
+    firstOption.value = "";
+    firstOption.textContent = placeholder;
+    select.appendChild(firstOption);
+
+    items.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = getId(item);
+      option.textContent = getName(item);
+
+      if (option.value === selectedValue) {
+        option.selected = true;
+      }
+
+      select.appendChild(option);
+    });
+  }
+
+  async function loadInitialData() {
+    try {
+      const [stageData, userData, organisationData] = await Promise.all([
+        fetchArray(`${API_BASE}/stages/project/${projectId}`),
+        fetchArray(`${API_BASE}/users`),
+        fetchArray(`${API_BASE}/organisations`),
+      ]);
+
+      stages = stageData;
+      users = userData;
+      organisations = organisationData;
+
+      populateSelect(stageSelect, stages, "Project-level attachment");
+
+      populateSelect(
+        document.getElementById("uploadedBy"),
+        users.filter((user) => user.isActive !== false),
+        "Select uploader"
+      );
+
+      populateSelect(
+        document.getElementById("organisation"),
+        organisations.filter((org) => org.active !== false),
+        "No organisation selected"
+      );
+
+      updateActivityOptions();
+    } catch (error) {
+      console.error("Failed to load upload form data:", error);
+      showMessage(
+        "Some form options could not be loaded. Check that the API is running."
+      );
+    }
+  }
+
+  async function loadActivities(stageId) {
+    activities = [];
+
+    if (!stageId) {
+      updateActivityOptions();
+      return;
+    }
+
+    activitySelect.disabled = true;
+    populateSelect(activitySelect, [], "Loading activities...");
+
+    try {
+      activities = await fetchArray(
+        `${API_BASE}/activities/stage/${stageId}`
+      );
+
+      updateActivityOptions();
+    } catch (error) {
+      console.error("Failed to load activities:", error);
+      populateSelect(activitySelect, [], "Could not load activities");
+    }
+  }
+
+  function updateActivityOptions() {
+    populateSelect(
+      activitySelect,
+      activities,
+      stageSelect.value ? "Stage-level attachment" : "Select a stage first"
+    );
+
+    activitySelect.disabled = !stageSelect.value;
+  }
+
+  function setFileType(type) {
+    const isPhoto = type === "photo";
+
+    photoOption.classList.toggle("active", isPhoto);
+    documentOption.classList.toggle("active", !isPhoto);
+
+    photoFields.hidden = !isPhoto;
+    documentFields.hidden = isPhoto;
+
+    documentFields
+      .querySelectorAll("input, select, textarea")
+      .forEach((input) => {
+        input.disabled = isPhoto;
+      });
+
+    document.getElementById("photoTitle").required = isPhoto;
+    document.getElementById("documentTitle").required = !isPhoto;
+
+    fileInput.accept = isPhoto
+      ? "image/jpeg,image/png,image/webp"
+      : ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv";
+
+    fileInput.multiple = isPhoto;
+
+    document.getElementById("dropTitle").textContent = isPhoto
+      ? "Drag and drop your photos here"
+      : "Drag and drop your document here";
+
+    document.getElementById("dropDescription").textContent = isPhoto
+      ? "or click below to browse your device"
+      : "Select one document to upload";
+
+    document.getElementById("fileRestrictions").textContent = isPhoto
+      ? "JPG, PNG or WEBP · Maximum 10 MB per image"
+      : "PDF, DOCX, XLSX, PPTX and more · Maximum 25 MB";
+
+    submitText.textContent = isPhoto ? "Upload Photos" : "Upload Document";
+
+    // Clear files when switching between file types to avoid
+    // accidentally submitting files with the wrong metadata.
+    clearSelectedFiles();
+    hideMessage();
+  }
+
+  function revokeObjectUrls() {
+    objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    objectUrls = [];
+  }
+
+  function clearSelectedFiles() {
+    revokeObjectUrls();
+    selectedFiles = [];
+    fileInput.value = "";
+    renderPreviews();
+  }
+
+  function validateFile(file, type) {
+    if (type === "photo") {
+      if (!photoTypes.includes(file.type)) {
+        return `${file.name}: unsupported image format.`;
+      }
+
+      if (file.size > PHOTO_MAX_SIZE) {
+        return `${file.name}: image exceeds the 10 MB limit.`;
+      }
+    } else {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+
+      if (
+        !documentTypes.includes(file.type) &&
+        !documentExtensions.includes(extension)
+      ) {
+        return `${file.name}: unsupported document format.`;
+      }
+
+      if (file.size > DOCUMENT_MAX_SIZE) {
+        return `${file.name}: document exceeds the 25 MB limit.`;
+      }
+    }
+
+    return "";
+  }
+
+  function addFiles(fileList) {
+    hideMessage();
+
+    const type = getFileType();
+    const incoming = Array.from(fileList || []);
+
+    if (type === "document" && incoming.length > 1) {
+      showMessage("Please select one document at a time.");
+      return;
+    }
+
+    const validFiles = [];
+
+    for (const file of incoming) {
+      const error = validateFile(file, type);
+
+      if (error) {
+        showMessage(error);
+        continue;
+      }
+
+      const alreadyAdded = selectedFiles.some(
+        (existing) =>
+          existing.name === file.name &&
+          existing.size === file.size &&
+          existing.lastModified === file.lastModified
+      );
+
+      if (!alreadyAdded) validFiles.push(file);
+    }
+
+    if (type === "document") {
+      selectedFiles = validFiles.slice(0, 1);
+    } else {
+      selectedFiles = [...selectedFiles, ...validFiles];
+    }
+
+    renderPreviews();
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(0)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  function renderPreviews() {
+    revokeObjectUrls();
+    previewList.replaceChildren();
+
+    filesHeader.hidden = selectedFiles.length === 0;
+    filesCount.textContent = `Selected files (${selectedFiles.length})`;
+
+    selectedFiles.forEach((file, index) => {
+      const row = document.createElement("div");
+      row.className = "file-preview-item";
+
+      if (file.type.startsWith("image/")) {
+        const image = document.createElement("img");
+        image.className = "preview-image";
+        image.alt = file.name;
+
+        const url = URL.createObjectURL(file);
+        objectUrls.push(url);
+        image.src = url;
+
+        row.appendChild(image);
+      } else {
+        const icon = document.createElement("span");
+        icon.className = "material-symbols-rounded document-preview-icon";
+        icon.textContent = "description";
+        row.appendChild(icon);
+      }
+
+      const info = document.createElement("div");
+      info.className = "file-preview-info";
+
+      const name = document.createElement("strong");
+      name.textContent = file.name;
+
+      const size = document.createElement("small");
+      size.textContent = formatSize(file.size);
+
+      info.append(name, size);
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "remove-file-btn";
+      removeButton.setAttribute(`aria-label`, `Remove ${file.name}`);
+      removeButton.innerHTML =
+        '<span class="material-symbols-rounded">close</span>';
+
+      removeButton.addEventListener("click", () => {
+        selectedFiles.splice(index, 1);
+        renderPreviews();
+      });
+
+      row.append(info, removeButton);
+      previewList.appendChild(row);
+    });
+  }
+
+  browseBtn.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", (event) => {
+    addFiles(event.target.files);
+    fileInput.value = "";
+  });
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropZone.classList.add("dragging");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropZone.classList.remove("dragging");
+    });
+  });
+
+  dropZone.addEventListener("drop", (event) => {
+    addFiles(event.dataTransfer.files);
+  });
+
+  clearFilesBtn.addEventListener("click", clearSelectedFiles);
+
+  form.querySelectorAll('input[name="fileType"]').forEach((radio) => {
+    radio.addEventListener("change", () => setFileType(radio.value));
+  });
+
+  stageSelect.addEventListener("change", async () => {
+    activitySelect.value = "";
+    await loadActivities(stageSelect.value);
+  });
+
+  form.addEventListener("reset", () => {
+    setTimeout(() => {
+      clearSelectedFiles();
+      setFileType("photo");
+      stageSelect.value = "";
+      activities = [];
+      updateActivityOptions();
+      hideMessage();
+    }, 0);
+  });
+
+  function setSubmitting(isSubmitting) {
+    submitBtn.disabled = isSubmitting;
+    browseBtn.disabled = isSubmitting;
+    progressContainer.hidden = !isSubmitting;
+
+    if (isSubmitting) {
+      progressBar.style.width = "0%";
+      progressText.textContent = "Uploading...";
+    }
+  }
+
+  function submitWithProgress(url, data) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.open("POST", url);
+
+      xhr.upload.addEventListener("progress", (event) => {
+        if (!event.lengthComputable) return;
+
+        const percentage = Math.round(
+          (event.loaded / event.total) * 100
+        );
+
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `Uploading... ${percentage}%`;
+      });
+
+      xhr.addEventListener("load", () => {
+        let response;
+
+        try {
+          response = JSON.parse(xhr.responseText);
+        } catch {
+          reject(new Error("The server returned an invalid response."));
+          return;
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(response);
+        } else {
+          reject(
+            new Error(response.message || "Upload failed.")
+          );
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(new Error("Network error. Check your connection and API server."));
+      });
+
+      xhr.send(data);
+    });
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    hideMessage();
+
+    if (selectedFiles.length === 0) {
+      showMessage("Please select at least one file.");
+      return;
+    }
+
+    const type = getFileType();
+    const stage = stageSelect.value;
+    const activity = activitySelect.value;
+
+    if (activity && !stage) {
+      showMessage("Select a stage before selecting an activity.");
+      return;
+    }
+
+    const title = type === "photo"
+      ? document.getElementById("photoTitle").value.trim()
+      : document.getElementById("documentTitle").value.trim();
+
+    if (!title) {
+      showMessage("Please enter a title.");
+      return;
+    }
+
+    const uploadedBy = document.getElementById("uploadedBy").value;
+
+    if (!uploadedBy) {
+      showMessage("Please select the uploading user.");
+      return;
+    }
+
+    const organisation = document.getElementById("organisation").value;
+
+    const data = new FormData();
+
+    data.append("project", projectId);
+    data.append("stage", stage);
+    data.append("activity", activity);
+    data.append("title", title);
+    data.append("uploadedBy", uploadedBy);
+    data.append("organisation", organisation);
+
+    if (type === "photo") {
+      data.append(
+        "description",
+        document.getElementById("photoDescription").value
+      );
+
+      data.append("takenAt", document.getElementById("takenAt").value);
+
+      const tags = document.getElementById("photoTags").value
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+
+      tags.forEach((tag) => data.append("tags[]", tag));
+
+      data.append(
+        "locationDescription",
+        document.getElementById("photoLocation").value
+      );
+
+      selectedFiles.forEach((file) => data.append("files", file));
+
+    } else {
+      data.append(
+        "documentNumber",
+        document.getElementById("documentNumber").value
+      );
+
+      data.append(
+        "category",
+        document.getElementById("category").value
+      );
+
+      data.append(
+        "version",
+        document.getElementById("version").value
+      );
+
+      data.append(
+        "documentDate",
+        document.getElementById("documentDate").value
+      );
+
+      data.append(
+        "description",
+        document.getElementById("documentDescription").value
+      );
+
+      data.append(
+        "notes",
+        document.getElementById("documentNotes").value
+      );
+
+      data.append("file", selectedFiles[0]);
+    }
+
+    // These upload endpoints will need Multer middleware
+    // and matching controller logic on the backend.
+    const endpoint = type === "photo"
+      ? `${API_BASE}/photos`
+      : `${API_BASE}/documents`;
+
+    setSubmitting(true);
+
+    try {
+      const response = await submitWithProgress(endpoint, data);
+
+      showMessage(
+        response.message || "Files uploaded successfully.",
+        "success"
+      );
+
+      clearSelectedFiles();
+
+      form.dispatchEvent(
+        new CustomEvent("files-uploaded", {
+          bubbles: true,
+          detail: { type, response },
+        })
+      );
+    } catch (error) {
+      console.error("Upload failed:", error);
+      showMessage(error.message || "Failed to upload files.");
+    } finally {
+      setSubmitting(false);
+    }
+  });
+
+  loadInitialData();
+</script>
+
+<style>
+  .upload-form {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    color: var(--color-text);
+    font-family: var(--font-primary, inherit);
+  }
+
+  .form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .form-header h2 {
+    margin: 0 0 6px;
+    font-size: 1.4rem;
+    font-weight: 600;
+  }
+
+  .form-header p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .form-section {
+    padding: 22px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .form-section h3 {
+    margin: 0 0 18px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .file-type-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .file-type-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md, 10px);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: var(--transition, 0.2s ease);
+  }
+
+  .file-type-option.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-50, transparent);
+  }
+
+  .file-type-option input {
+    accent-color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .file-type-option > .material-symbols-rounded {
+    color: var(--color-primary);
+    font-size: 28px;
+  }
+
+  .file-type-option strong,
+  .file-type-option small {
+    display: block;
+  }
+
+  .file-type-option strong {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+  }
+
+  .file-type-option small {
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .drop-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 230px;
+    padding: 28px 18px;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md, 10px);
+    background: var(--color-surface);
+    text-align: center;
+    transition: var(--transition, 0.2s ease);
+  }
+
+  .drop-zone.dragging {
+    border-color: var(--color-primary);
+    background: var(--color-primary-50, transparent);
+  }
+
+  .upload-icon {
+    margin-bottom: 12px;
+    color: var(--color-primary);
+    font-size: 42px;
+  }
+
+  .drop-zone h4 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .drop-zone p {
+    margin: 0 0 16px;
+    color: var(--color-text-secondary);
+    font-size: 0.85rem;
+  }
+
+  .drop-zone > small {
+    margin-top: 14px;
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+  }
+
+  .browse-btn,
+  .btn-primary,
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md, 8px);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition, 0.2s ease);
+  }
+
+  .browse-btn {
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    background: var(--color-surface);
+  }
+
+  .browse-btn:hover,
+  .btn-secondary:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .selected-files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    font-size: 0.85rem;
+  }
+
+  .text-btn {
+    border: 0;
+    padding: 6px 0;
+    background: transparent;
+    color: var(--color-primary);
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+
+  .file-preview-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md, 8px);
+    background: var(--color-surface);
+  }
+
+  .preview-image {
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+
+  .document-preview-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background: var(--color-primary-50, transparent);
+    color: var(--color-primary);
+    font-size: 30px;
+  }
+
+  .file-preview-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .file-preview-info strong {
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .file-preview-info small {
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+  }
+
+  .remove-file-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .remove-file-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-error, #dc2626);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .required {
+    color: var(--color-error, #dc2626);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md, 8px);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 0.875rem;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .form-group input:disabled,
+  .form-group select:disabled,
+  .form-group textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .form-group small {
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .form-message {
+    margin-top: 20px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md, 8px);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .form-message.error {
+    border: 1px solid var(--color-error, #dc2626);
+    background: rgba(220, 38, 38, 0.06);
+    color: var(--color-error, #dc2626);
+  }
+
+  .form-message.success {
+    border: 1px solid #16a34a;
+    background: rgba(22, 163, 74, 0.06);
+    color: #15803d;
+  }
+
+  .upload-progress {
+    margin-top: 18px;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 7px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: var(--color-border);
+  }
+
+  .progress-bar {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-primary);
+    transition: width 0.15s ease;
+  }
+
+  .upload-progress small {
+    display: block;
+    margin-top: 8px;
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 24px;
+  }
+
+  .btn-secondary {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+
+  .btn-primary {
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-hover);
+  }
+
+  .btn-primary:disabled,
+  .browse-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 600px) {
+    .form-header,
+    .form-section h3 {
+      text-align: center;
+    }
+
+    .form-grid,
+    .file-type-options {
+      grid-template-columns: 1fr;
+    }
+
+    .form-group label,
+    .form-group small {
+      text-align: center;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      text-align: left;
+    }
+
+    .form-actions {
+      flex-direction: column-reverse;
+    }
+
+    .form-actions button {
+      width: 100%;
+    }
+
+    .drop-zone {
+      min-height: 200px;
+    }
+  }
+</style>

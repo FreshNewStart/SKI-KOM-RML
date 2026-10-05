@@ -1,0 +1,4192 @@
+---
+const { projectId } = Astro.props;
+---
+
+<section class="activity-form-card">
+
+  <!-- =====================================================
+       HEADER
+  ====================================================== -->
+
+  <div class="activity-form-header">
+
+    <div class="activity-form-heading">
+
+      <span class="activity-form-eyebrow">
+        Activity Management
+      </span>
+
+      <h2 id="activityFormTitle">
+        Create Activity
+      </h2>
+
+      <p id="activityFormDescription">
+        Create a new activity and assign it to a stage.
+      </p>
+
+    </div>
+
+    <!-- CREATE / EDIT TOGGLE -->
+
+    <div class="activity-mode-toggle">
+
+      <button
+        type="button"
+        class="activity-mode-button active"
+        data-mode="create"
+      >
+        Create
+      </button>
+
+      <button
+        type="button"
+        class="activity-mode-button"
+        data-mode="edit"
+      >
+        Edit
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       EDIT ACTIVITY SELECTOR
+  ====================================================== -->
+
+  <div
+    id="editActivityContainer"
+    class="form-section edit-activity-section"
+    hidden
+  >
+
+    <div class="section-heading">
+
+      <h3>Select Activity</h3>
+
+      <p>
+        Select an existing activity to edit its details.
+      </p>
+
+    </div>
+
+    <div class="form-group">
+
+      <label for="editActivitySelect">
+        Activity
+      </label>
+
+      <select id="editActivitySelect">
+
+        <option value="">
+          Loading activities...
+        </option>
+
+      </select>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       FORM
+  ====================================================== -->
+
+  <form id="activityForm">
+
+
+    <!-- ===================================================
+         GENERAL INFORMATION
+    ==================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+
+        <h3>General Information</h3>
+
+        <p>
+          Basic information about the activity.
+        </p>
+
+      </div>
+
+      <div class="form-grid">
+
+        <!-- NAME -->
+
+        <div class="form-group form-group-full">
+
+          <label for="name">
+            Activity Name
+            <span class="required">*</span>
+          </label>
+
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Enter activity name"
+            required
+          />
+
+        </div>
+
+
+        <!-- DESCRIPTION -->
+
+        <div class="form-group form-group-full">
+
+          <label for="description">
+            Description
+          </label>
+
+          <textarea
+            id="description"
+            name="description"
+            rows="3"
+            placeholder="Describe the activity..."
+          ></textarea>
+
+        </div>
+
+
+        <!-- ACTIVITY CODE -->
+
+        <div class="form-group">
+
+          <label for="activityCode">
+            Activity Code
+          </label>
+
+          <input
+            type="text"
+            id="activityCode"
+            name="activityCode"
+            placeholder="e.g. BLK-ETH-001"
+          />
+
+        </div>
+
+
+        <!-- SEQUENCE -->
+
+        <div class="form-group">
+
+          <label for="sequence">
+            Sequence
+          </label>
+
+          <input
+            type="number"
+            id="sequence"
+            name="sequence"
+            min="0"
+            value="0"
+          />
+
+          <small class="field-help">
+            Determines the order of activities within the stage.
+          </small>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         HIERARCHY
+    ==================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+
+        <h3>Hierarchy</h3>
+
+        <p>
+          Assign the activity to a stage or substage and,
+          optionally, to a parent activity.
+        </p>
+
+      </div>
+
+      <div class="form-grid">
+
+        <!-- STAGE -->
+
+        <div class="form-group">
+
+          <label for="stage">
+            Stage / Substage
+            <span class="required">*</span>
+          </label>
+
+          <select
+            id="stage"
+            name="stage"
+            required
+          >
+
+            <option value="">
+              Loading stages...
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- PARENT ACTIVITY -->
+
+        <div class="form-group">
+
+          <label for="parentActivity">
+            Parent Activity
+          </label>
+
+          <select
+            id="parentActivity"
+            name="parentActivity"
+          >
+
+            <option value="">
+              No Parent Activity
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         STATUS & PROGRESS
+    ==================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+
+        <h3>Status & Progress</h3>
+
+        <p>
+          Track the current state and progress of the activity.
+        </p>
+
+      </div>
+
+      <div class="form-grid">
+
+        <!-- STATUS -->
+
+        <div class="form-group">
+
+          <label for="status">
+            Status
+          </label>
+
+          <select
+            id="status"
+            name="status"
+          >
+
+            <option value="Not Started">
+              Not Started
+            </option>
+
+            <option value="In Progress">
+              In Progress
+            </option>
+
+            <option value="On Hold">
+              On Hold
+            </option>
+
+            <option value="Completed">
+              Completed
+            </option>
+
+            <option value="Delayed">
+              Delayed
+            </option>
+
+            <option value="Cancelled">
+              Cancelled
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- PROGRESS -->
+
+        <div class="form-group">
+
+          <label for="progress">
+            Progress (%)
+          </label>
+
+          <input
+            type="number"
+            id="progress"
+            name="progress"
+            min="0"
+            max="100"
+            value="0"
+          />
+
+          <small class="field-help">
+            Updating progress automatically updates the assessment date.
+          </small>
+
+        </div>
+
+
+        <!-- PERFORMANCE INDEX -->
+
+        <div class="form-group">
+
+          <label for="latestPerformanceIndex">
+            Latest Performance Index
+          </label>
+
+          <div class="calculated-field">
+
+            <input
+              type="number"
+              id="latestPerformanceIndex"
+              name="latestPerformanceIndex"
+              readonly
+              placeholder="Calculated automatically"
+            />
+
+            <span
+              id="performanceIndexStatus"
+              class="calculated-status"
+            >
+              Awaiting schedule
+            </span>
+
+          </div>
+
+          <small class="field-help">
+            Calculated from actual progress against expected schedule progress.
+          </small>
+
+        </div>
+
+
+        <!-- LAST ASSESSMENT -->
+
+        <div class="form-group">
+
+          <label for="lastProgressAssessmentDate">
+            Last Progress Assessment
+          </label>
+
+          <input
+            type="date"
+            id="lastProgressAssessmentDate"
+            name="lastProgressAssessmentDate"
+            readonly
+          />
+
+          <small class="field-help">
+            Automatically updated when progress changes.
+          </small>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         SCHEDULE
+    ==================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+
+        <h3>Schedule</h3>
+
+        <p>
+          Define the planned and actual activity dates.
+        </p>
+
+      </div>
+
+      <div class="form-grid">
+
+        <!-- PLANNED START -->
+
+        <div class="form-group">
+
+          <label for="startDate">
+            Planned Start
+          </label>
+
+          <input
+            type="date"
+            id="startDate"
+            name="startDate"
+          />
+
+        </div>
+
+
+        <!-- PLANNED END -->
+
+        <div class="form-group">
+
+          <label for="plannedEndDate">
+            Planned End
+          </label>
+
+          <input
+            type="date"
+            id="plannedEndDate"
+            name="plannedEndDate"
+          />
+
+        </div>
+
+
+        <!-- DURATION -->
+
+        <div class="form-group">
+
+          <label for="durationDays">
+            Duration
+          </label>
+
+          <div class="calculated-field">
+
+            <input
+              type="number"
+              id="durationDays"
+              name="durationDays"
+              readonly
+              placeholder="Calculated automatically"
+            />
+
+            <span class="calculated-unit">
+              days
+            </span>
+
+          </div>
+
+          <small class="field-help">
+            Automatically calculated from planned start and end dates.
+          </small>
+
+        </div>
+
+
+        <!-- ACTUAL START -->
+
+        <div class="form-group">
+
+          <label for="actualStartDate">
+            Actual Start
+          </label>
+
+          <input
+            type="date"
+            id="actualStartDate"
+            name="actualStartDate"
+          />
+
+        </div>
+
+
+        <!-- ACTUAL END -->
+
+        <div class="form-group">
+
+          <label for="actualEndDate">
+            Actual End
+          </label>
+
+          <input
+            type="date"
+            id="actualEndDate"
+            name="actualEndDate"
+          />
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         RESPONSIBILITY
+    ==================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+
+        <h3>Responsibility</h3>
+
+        <p>
+          Assign responsibility for the activity.
+        </p>
+
+      </div>
+
+      <div class="form-grid">
+
+        <!-- ORGANISATION -->
+
+        <div class="form-group">
+
+          <label for="responsibleOrganisation">
+            Responsible Organisation
+          </label>
+
+          <select
+            id="responsibleOrganisation"
+            name="responsibleOrganisation"
+          >
+
+            <option value="">
+              Loading organisations...
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- USERS -->
+
+        <div class="form-group">
+
+          <label for="assignedTo">
+            Assigned Users
+          </label>
+
+          <select
+            id="assignedTo"
+            name="assignedTo"
+            multiple
+          >
+          </select>
+
+          <small class="field-help">
+            Select one or more users responsible for this activity.
+          </small>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         NOTES
+    ==================================================== -->
+
+    <div class="form-section">
+
+      <div class="section-heading">
+
+        <h3>Notes</h3>
+
+      </div>
+
+      <div class="form-group">
+
+        <label for="notes">
+          Notes
+        </label>
+
+        <textarea
+          id="notes"
+          name="notes"
+          rows="4"
+          placeholder="Additional notes..."
+        ></textarea>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         ACTIVE
+    ==================================================== -->
+
+    <div class="form-section">
+
+      <label class="checkbox-label">
+
+        <input
+          type="checkbox"
+          id="isActive"
+          name="isActive"
+          checked
+        />
+
+        <span>
+          Activity is active
+        </span>
+
+      </label>
+
+    </div>
+
+
+    <!-- ===================================================
+         ACTIONS
+    ==================================================== -->
+
+    <div class="form-actions">
+
+      <button
+        type="button"
+        id="resetActivityForm"
+        class="secondary-button"
+      >
+        Reset
+      </button>
+
+      <button
+        type="submit"
+        id="submitActivityButton"
+        class="primary-button"
+      >
+        Create Activity
+      </button>
+
+    </div>
+
+  </form>
+
+
+  <!-- =====================================================
+       MESSAGE
+  ====================================================== -->
+
+  <div
+    id="activityFormMessage"
+    class="form-message"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+</section>
+
+
+<script define:vars={{ projectId }}>
+
+  /* =========================================================
+     CONFIGURATION
+  ========================================================== */
+
+  const API_BASE =
+    "http://localhost:5000/api";
+
+
+  /* =========================================================
+     STATE
+  ========================================================== */
+
+  let currentMode =
+    "create";
+
+  let currentActivityId =
+    null;
+
+  let stages =
+    [];
+
+  let allActivities =
+    [];
+
+  let stageActivities =
+    [];
+
+  let organisations =
+    [];
+
+  let users =
+    [];
+
+  /*
+   * Used to determine whether progress has changed
+   * while editing an existing activity.
+   */
+  let originalProgress =
+    null;
+
+  /*
+   * Prevents the assessment date from being
+   * unnecessarily changed while loading an
+   * existing activity.
+   */
+  let loadingActivity =
+    false;
+
+
+  /* =========================================================
+     ELEMENTS
+  ========================================================== */
+
+  const form =
+    document.getElementById(
+      "activityForm"
+    );
+
+  const stageSelect =
+    document.getElementById(
+      "stage"
+    );
+
+  const parentActivitySelect =
+    document.getElementById(
+      "parentActivity"
+    );
+
+  const editActivityContainer =
+    document.getElementById(
+      "editActivityContainer"
+    );
+
+  const editActivitySelect =
+    document.getElementById(
+      "editActivitySelect"
+    );
+
+  const submitButton =
+    document.getElementById(
+      "submitActivityButton"
+    );
+
+  const resetButton =
+    document.getElementById(
+      "resetActivityForm"
+    );
+
+  const formMessage =
+    document.getElementById(
+      "activityFormMessage"
+    );
+
+  const formTitle =
+    document.getElementById(
+      "activityFormTitle"
+    );
+
+  const formDescription =
+    document.getElementById(
+      "activityFormDescription"
+    );
+
+  const modeButtons =
+    document.querySelectorAll(
+      ".activity-mode-button"
+    );
+
+  const organisationSelect =
+    document.getElementById(
+      "responsibleOrganisation"
+    );
+
+  const assignedToSelect =
+    document.getElementById(
+      "assignedTo"
+    );
+
+  const progressInput =
+    document.getElementById(
+      "progress"
+    );
+
+  const durationInput =
+    document.getElementById(
+      "durationDays"
+    );
+
+  const performanceInput =
+    document.getElementById(
+      "latestPerformanceIndex"
+    );
+
+  const performanceStatus =
+    document.getElementById(
+      "performanceIndexStatus"
+    );
+
+  const assessmentDateInput =
+    document.getElementById(
+      "lastProgressAssessmentDate"
+    );
+
+  const startDateInput =
+    document.getElementById(
+      "startDate"
+    );
+
+  const plannedEndDateInput =
+    document.getElementById(
+      "plannedEndDate"
+    );
+
+
+  /* =========================================================
+     HELPERS
+  ========================================================== */
+
+  function getId(value) {
+
+    if (!value) {
+      return "";
+    }
+
+    if (
+      typeof value === "string"
+    ) {
+
+      return value;
+
+    }
+
+    if (
+      typeof value === "object"
+    ) {
+
+      return (
+        value._id ||
+        value.id ||
+        ""
+      );
+
+    }
+
+    return String(value);
+
+  }
+
+
+  function dateInputValue(value) {
+
+    if (!value) {
+      return "";
+    }
+
+    const date =
+      new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+
+      return "";
+
+    }
+
+    return date
+      .toISOString()
+      .slice(0, 10);
+
+  }
+
+
+  function todayInputValue() {
+
+    const today =
+      new Date();
+
+    const year =
+      today.getFullYear();
+
+    const month =
+      String(
+        today.getMonth() + 1
+      ).padStart(
+        2,
+        "0"
+      );
+
+    const day =
+      String(
+        today.getDate()
+      ).padStart(
+        2,
+        "0"
+      );
+
+    return `${year}-${month}-${day}`;
+
+  }
+
+
+  function showMessage(
+    message,
+    type = ""
+  ) {
+
+    formMessage.textContent =
+      message;
+
+    formMessage.className =
+      `form-message ${type}`;
+
+  }
+
+
+  function clearMessage() {
+
+    formMessage.textContent =
+      "";
+
+    formMessage.className =
+      "form-message";
+
+  }
+
+
+  /* =========================================================
+     API REQUEST
+  ========================================================== */
+
+  async function apiRequest(
+    url,
+    options = {}
+  ) {
+
+    const response =
+      await fetch(
+        url,
+        {
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            ...(options.headers || {})
+          },
+
+          ...options
+        }
+      );
+
+
+    let data =
+      null;
+
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch {
+
+      data =
+        null;
+
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.message ||
+        data?.error ||
+        "Request failed."
+      );
+
+    }
+
+
+    return data;
+
+  }
+
+
+  /* =========================================================
+     CALCULATE DURATION
+  ========================================================== */
+
+  function calculateDuration() {
+
+    const start =
+      startDateInput.value;
+
+    const end =
+      plannedEndDateInput.value;
+
+
+    if (
+      !start ||
+      !end
+    ) {
+
+      durationInput.value =
+        "";
+
+      return null;
+
+    }
+
+
+    const startDate =
+      new Date(
+        `${start}T00:00:00`
+      );
+
+    const endDate =
+      new Date(
+        `${end}T00:00:00`
+      );
+
+
+    if (
+      Number.isNaN(
+        startDate.getTime()
+      ) ||
+      Number.isNaN(
+        endDate.getTime()
+      )
+    ) {
+
+      durationInput.value =
+        "";
+
+      return null;
+
+    }
+
+
+    const difference =
+      endDate.getTime() -
+      startDate.getTime();
+
+
+    /*
+     * End date is inclusive.
+     *
+     * 01 Oct → 01 Oct = 1 day
+     * 01 Oct → 14 Oct = 14 days
+     */
+
+    const days =
+      Math.floor(
+        difference /
+        (1000 * 60 * 60 * 24)
+      ) + 1;
+
+
+    if (
+      days <= 0
+    ) {
+
+      durationInput.value =
+        "";
+
+      return null;
+
+    }
+
+
+    durationInput.value =
+      days;
+
+
+    return days;
+
+  }
+
+
+  /* =========================================================
+     CALCULATE PERFORMANCE INDEX
+  ========================================================== */
+
+  function calculatePerformanceIndex() {
+
+    const progress =
+      Number(
+        progressInput.value
+      ) || 0;
+
+    const start =
+      startDateInput.value;
+
+    const end =
+      plannedEndDateInput.value;
+
+
+    /*
+     * No schedule = no meaningful
+     * schedule performance index.
+     */
+
+    if (
+      !start ||
+      !end
+    ) {
+
+      performanceInput.value =
+        "";
+
+      performanceStatus.textContent =
+        "Awaiting schedule";
+
+      performanceStatus.className =
+        "calculated-status";
+
+      return null;
+
+    }
+
+
+    const startDate =
+      new Date(
+        `${start}T00:00:00`
+      );
+
+    const endDate =
+      new Date(
+        `${end}T00:00:00`
+      );
+
+    const today =
+      new Date();
+
+
+    today.setHours(
+      0,
+      0,
+      0,
+      0
+    );
+
+
+    if (
+      endDate <= startDate
+    ) {
+
+      /*
+       * A one-day activity has 100%
+       * expected progress on its date.
+       */
+
+      if (
+        endDate.getTime() ===
+        startDate.getTime()
+      ) {
+
+        const expected =
+          today >= endDate
+            ? 100
+            : 0;
+
+
+        if (
+          expected === 0
+        ) {
+
+          performanceInput.value =
+            "";
+
+          performanceStatus.textContent =
+            "Not started";
+
+          performanceStatus.className =
+            "calculated-status";
+
+          return null;
+
+        }
+
+
+        const index =
+          progress /
+          expected;
+
+
+        setPerformanceDisplay(
+          index
+        );
+
+
+        return index;
+
+      }
+
+
+      performanceInput.value =
+        "";
+
+      performanceStatus.textContent =
+        "Invalid schedule";
+
+      performanceStatus.className =
+        "calculated-status";
+
+      return null;
+
+    }
+
+
+    /*
+     * Before planned start:
+     * no schedule performance measurement yet.
+     */
+
+    if (
+      today <
+      startDate
+    ) {
+
+      performanceInput.value =
+        "";
+
+      performanceStatus.textContent =
+        "Not started";
+
+      performanceStatus.className =
+        "calculated-status";
+
+      return null;
+
+    }
+
+
+    /*
+     * After planned end:
+     * expected progress is 100%.
+     */
+
+    let expectedProgress;
+
+
+    if (
+      today >=
+      endDate
+    ) {
+
+      expectedProgress =
+        100;
+
+    } else {
+
+      const totalDuration =
+        endDate.getTime() -
+        startDate.getTime();
+
+
+      const elapsed =
+        today.getTime() -
+        startDate.getTime();
+
+
+      expectedProgress =
+        (
+          elapsed /
+          totalDuration
+        ) * 100;
+
+
+      expectedProgress =
+        Math.max(
+          0,
+          Math.min(
+            100,
+            expectedProgress
+          )
+        );
+
+    }
+
+
+    /*
+     * Avoid division by zero.
+     */
+
+    if (
+      expectedProgress <= 0
+    ) {
+
+      performanceInput.value =
+        "";
+
+      performanceStatus.textContent =
+        "Not started";
+
+      performanceStatus.className =
+        "calculated-status";
+
+      return null;
+
+    }
+
+
+    const index =
+      progress /
+      expectedProgress;
+
+
+    setPerformanceDisplay(
+      index
+    );
+
+
+    return index;
+
+  }
+
+
+  /* =========================================================
+     PERFORMANCE DISPLAY
+  ========================================================== */
+
+  function setPerformanceDisplay(
+    index
+  ) {
+
+    if (
+      index === null ||
+      !Number.isFinite(index)
+    ) {
+
+      performanceInput.value =
+        "";
+
+      performanceStatus.textContent =
+        "Awaiting schedule";
+
+      performanceStatus.className =
+        "calculated-status";
+
+      return;
+
+    }
+
+
+    /*
+     * Round to two decimal places.
+     */
+
+    const rounded =
+      Math.round(
+        index * 100
+      ) / 100;
+
+
+    performanceInput.value =
+      rounded.toFixed(2);
+
+
+    if (
+      rounded === 1
+    ) {
+
+      performanceStatus.textContent =
+        "On schedule";
+
+    } else if (
+      rounded < 1
+    ) {
+
+      performanceStatus.textContent =
+        "Behind schedule";
+
+    } else {
+
+      performanceStatus.textContent =
+        "Ahead of schedule";
+
+    }
+
+  }
+
+
+  /* =========================================================
+     UPDATE AUTOMATIC CALCULATIONS
+  ========================================================== */
+
+  function updateCalculatedFields() {
+
+    calculateDuration();
+
+    calculatePerformanceIndex();
+
+  }
+
+
+  /* =========================================================
+     LOAD STAGES
+  ========================================================== */
+
+  async function loadStages() {
+
+    stageSelect.innerHTML =
+      `<option value="">
+        Loading stages...
+      </option>`;
+
+
+    const response =
+      await apiRequest(
+        `${API_BASE}/stages/project/${projectId}`
+      );
+
+
+    const topLevelStages =
+      Array.isArray(response)
+        ? response
+        : (
+            response?.stages ||
+            response?.data ||
+            []
+          );
+
+
+    /*
+     * Get substages belonging to
+     * each top-level stage.
+     */
+
+    const substageResults =
+      await Promise.all(
+
+        topLevelStages.map(
+          async stage => {
+
+            const stageId =
+              getId(stage);
+
+
+            try {
+
+              const response =
+                await apiRequest(
+                  `${API_BASE}/stages/${stageId}/substages`
+                );
+
+
+              return (
+                Array.isArray(response)
+                  ? response
+                  : (
+                      response?.substages ||
+                      response?.stages ||
+                      response?.data ||
+                      []
+                    )
+              );
+
+            } catch (error) {
+
+              console.error(
+                `Failed to load substages for ${stageId}`,
+                error
+              );
+
+              return [];
+
+            }
+
+          }
+        )
+
+      );
+
+
+    const combinedStages =
+      [
+        ...topLevelStages
+      ];
+
+
+    const existingIds =
+      new Set(
+        combinedStages.map(
+          stage =>
+            getId(stage)
+        )
+      );
+
+
+    substageResults.forEach(
+      subStages => {
+
+        subStages.forEach(
+          subStage => {
+
+            const id =
+              getId(subStage);
+
+
+            if (
+              id &&
+              !existingIds.has(id)
+            ) {
+
+              combinedStages.push(
+                subStage
+              );
+
+              existingIds.add(id);
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+
+    stages =
+      combinedStages;
+
+
+    renderStageOptions();
+
+  }
+
+
+  /* =========================================================
+     RENDER STAGE HIERARCHY
+  ========================================================== */
+
+  function renderStageOptions(
+    selectedId = ""
+  ) {
+
+    stageSelect.innerHTML =
+      "";
+
+
+    const defaultOption =
+      document.createElement(
+        "option"
+      );
+
+
+    defaultOption.value =
+      "";
+
+
+    defaultOption.textContent =
+      "Select stage / substage...";
+
+
+    stageSelect.appendChild(
+      defaultOption
+    );
+
+
+    const children =
+      new Map();
+
+
+    stages.forEach(
+      stage => {
+
+        const parentId =
+          getId(
+            stage.parentStage
+          );
+
+
+        if (
+          !children.has(
+            parentId
+          )
+        ) {
+
+          children.set(
+            parentId,
+            []
+          );
+
+        }
+
+
+        children
+          .get(parentId)
+          .push(stage);
+
+      }
+    );
+
+
+    children.forEach(
+      stageList => {
+
+        stageList.sort(
+          (a, b) =>
+            (a.sortOrder || 0) -
+            (b.sortOrder || 0)
+        );
+
+      }
+    );
+
+
+    function addStages(
+      parentId = "",
+      depth = 0
+    ) {
+
+      const childStages =
+        children.get(
+          parentId
+        ) || [];
+
+
+      childStages.forEach(
+        stage => {
+
+          const option =
+            document.createElement(
+              "option"
+            );
+
+
+          const stageId =
+            getId(stage);
+
+
+          option.value =
+            stageId;
+
+
+          const prefix =
+            depth > 0
+              ? `${"— ".repeat(depth)}`
+              : "";
+
+
+          const code =
+            stage.code
+              ? `${stage.code} — `
+              : "";
+
+
+          option.textContent =
+            `${prefix}${code}${stage.name}`;
+
+
+          option.selected =
+            stageId ===
+            selectedId;
+
+
+          stageSelect.appendChild(
+            option
+          );
+
+
+          addStages(
+            stageId,
+            depth + 1
+          );
+
+        }
+      );
+
+    }
+
+
+    addStages();
+
+  }
+
+
+  /* =========================================================
+     LOAD STAGE ACTIVITIES
+  ========================================================== */
+
+  async function loadStageActivities(
+    stageId,
+    selectedParentId = ""
+  ) {
+
+    if (!stageId) {
+
+      stageActivities =
+        [];
+
+      renderParentActivities();
+
+      return;
+
+    }
+
+
+    parentActivitySelect.innerHTML =
+      `<option value="">
+        Loading activities...
+      </option>`;
+
+
+    try {
+
+      const response =
+        await apiRequest(
+          `${API_BASE}/activities/stage/${stageId}`
+        );
+
+
+      stageActivities =
+        Array.isArray(response)
+          ? response
+          : (
+              response?.activities ||
+              response?.data ||
+              []
+            );
+
+
+      renderParentActivities(
+        selectedParentId
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load stage activities:",
+        error
+      );
+
+
+      stageActivities =
+        [];
+
+
+      parentActivitySelect.innerHTML =
+        `<option value="">
+          No parent activities available
+        </option>`;
+
+    }
+
+  }
+
+
+  /* =========================================================
+     RENDER PARENT ACTIVITIES
+  ========================================================== */
+
+  function renderParentActivities(
+    selectedId = ""
+  ) {
+
+    parentActivitySelect.innerHTML =
+      "";
+
+
+    const noneOption =
+      document.createElement(
+        "option"
+      );
+
+
+    noneOption.value =
+      "";
+
+
+    noneOption.textContent =
+      "No Parent Activity";
+
+
+    parentActivitySelect.appendChild(
+      noneOption
+    );
+
+
+    if (
+      !stageSelect.value
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * Prevent an activity from
+     * becoming its own parent.
+     */
+
+    const availableActivities =
+      stageActivities.filter(
+        activity =>
+          getId(activity) !==
+          currentActivityId
+      );
+
+
+    const children =
+      new Map();
+
+
+    availableActivities.forEach(
+      activity => {
+
+        const parentId =
+          getId(
+            activity.parentActivity
+          );
+
+
+        if (
+          !children.has(
+            parentId
+          )
+        ) {
+
+          children.set(
+            parentId,
+            []
+          );
+
+        }
+
+
+        children
+          .get(parentId)
+          .push(activity);
+
+      }
+    );
+
+
+    children.forEach(
+      activityList => {
+
+        activityList.sort(
+          (a, b) =>
+            (a.sequence || 0) -
+            (b.sequence || 0)
+        );
+
+      }
+    );
+
+
+    function addActivities(
+      parentId = "",
+      depth = 0
+    ) {
+
+      const childActivities =
+        children.get(
+          parentId
+        ) || [];
+
+
+      childActivities.forEach(
+        activity => {
+
+          const option =
+            document.createElement(
+              "option"
+            );
+
+
+          const activityId =
+            getId(activity);
+
+
+          option.value =
+            activityId;
+
+
+          const prefix =
+            depth > 0
+              ? `${"— ".repeat(depth)}`
+              : "";
+
+
+          const code =
+            activity.activityCode
+              ? `${activity.activityCode} — `
+              : "";
+
+
+          option.textContent =
+            `${prefix}${code}${activity.name}`;
+
+
+          option.selected =
+            activityId ===
+            selectedId;
+
+
+          parentActivitySelect
+            .appendChild(option);
+
+
+          addActivities(
+            activityId,
+            depth + 1
+          );
+
+        }
+      );
+
+    }
+
+
+    addActivities();
+
+  }
+
+
+  /* =========================================================
+     LOAD ALL ACTIVITIES
+  ========================================================== */
+
+  async function loadAllActivities() {
+
+    const activityMap =
+      new Map();
+
+
+    await Promise.all(
+
+      stages.map(
+        async stage => {
+
+          const stageId =
+            getId(stage);
+
+
+          if (!stageId) {
+            return;
+          }
+
+
+          try {
+
+            const response =
+              await apiRequest(
+                `${API_BASE}/activities/stage/${stageId}`
+              );
+
+
+            const stageItems =
+              Array.isArray(response)
+                ? response
+                : (
+                    response?.activities ||
+                    response?.data ||
+                    []
+                  );
+
+
+            stageItems.forEach(
+              activity => {
+
+                const id =
+                  getId(activity);
+
+
+                if (id) {
+
+                  activityMap.set(
+                    id,
+                    activity
+                  );
+
+                }
+
+              }
+            );
+
+          } catch (error) {
+
+            console.error(
+              `Failed to load activities for stage ${stageId}`,
+              error
+            );
+
+          }
+
+        }
+      )
+
+    );
+
+
+    allActivities =
+      Array.from(
+        activityMap.values()
+      );
+
+
+    renderEditActivityOptions();
+
+  }
+
+
+  /* =========================================================
+     RENDER EDIT ACTIVITY OPTIONS
+  ========================================================== */
+
+  function renderEditActivityOptions() {
+
+    editActivitySelect.innerHTML =
+      "";
+
+
+    const defaultOption =
+      document.createElement(
+        "option"
+      );
+
+
+    defaultOption.value =
+      "";
+
+
+    defaultOption.textContent =
+      "Select an activity...";
+
+
+    editActivitySelect.appendChild(
+      defaultOption
+    );
+
+
+    const groups =
+      new Map();
+
+
+    allActivities.forEach(
+      activity => {
+
+        const stageId =
+          getId(
+            activity.stage
+          );
+
+
+        if (
+          !groups.has(stageId)
+        ) {
+
+          groups.set(
+            stageId,
+            []
+          );
+
+        }
+
+
+        groups
+          .get(stageId)
+          .push(activity);
+
+      }
+    );
+
+
+    groups.forEach(
+      (
+        stageItems,
+        stageId
+      ) => {
+
+        const stage =
+          stages.find(
+            item =>
+              getId(item) ===
+              stageId
+          );
+
+
+        const group =
+          document.createElement(
+            "optgroup"
+          );
+
+
+        group.label =
+          stage
+            ? `${stage.code || ""} — ${stage.name}`
+            : "Stage";
+
+
+        stageItems.sort(
+          (a, b) =>
+            (a.sequence || 0) -
+            (b.sequence || 0)
+        );
+
+
+        stageItems.forEach(
+          activity => {
+
+            const option =
+              document.createElement(
+                "option"
+              );
+
+
+            option.value =
+              getId(activity);
+
+
+            const code =
+              activity.activityCode
+                ? `${activity.activityCode} — `
+                : "";
+
+
+            option.textContent =
+              `${code}${activity.name}`;
+
+
+            group.appendChild(
+              option
+            );
+
+          }
+        );
+
+
+        editActivitySelect
+          .appendChild(group);
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     LOAD ORGANISATIONS
+  ========================================================== */
+
+  async function loadOrganisations() {
+
+    organisationSelect.innerHTML =
+      `<option value="">
+        Loading organisations...
+      </option>`;
+
+
+    const response =
+      await apiRequest(
+        `${API_BASE}/organisations`
+      );
+
+
+    organisations =
+      Array.isArray(response)
+        ? response
+        : (
+            response?.organisations ||
+            response?.data ||
+            []
+          );
+
+
+    organisations =
+      organisations.filter(
+        organisation =>
+          organisation.active !== false
+      );
+
+
+    organisationSelect.innerHTML =
+      "";
+
+
+    const defaultOption =
+      document.createElement(
+        "option"
+      );
+
+
+    defaultOption.value =
+      "";
+
+
+    defaultOption.textContent =
+      "Select organisation...";
+
+
+    organisationSelect.appendChild(
+      defaultOption
+    );
+
+
+    organisations.forEach(
+      organisation => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+
+        option.value =
+          getId(organisation);
+
+
+        const code =
+          organisation.code
+            ? `${organisation.code} — `
+            : "";
+
+
+        option.textContent =
+          `${code}${organisation.name}`;
+
+
+        organisationSelect
+          .appendChild(option);
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     LOAD USERS
+  ========================================================== */
+
+  async function loadUsers() {
+
+    assignedToSelect.innerHTML =
+      "";
+
+
+    const response =
+      await apiRequest(
+        `${API_BASE}/users`
+      );
+
+
+    users =
+      Array.isArray(response)
+        ? response
+        : (
+            response?.users ||
+            response?.data ||
+            []
+          );
+
+
+    users =
+      users.filter(
+        user =>
+          user.isActive !== false
+      );
+
+
+    users.forEach(
+      user => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+
+        option.value =
+          getId(user);
+
+
+        const name =
+          `${user.firstName || ""} ${user.lastName || ""}`
+            .trim();
+
+
+        const role =
+          user.role
+            ? ` — ${user.role}`
+            : "";
+
+
+        option.textContent =
+          `${name}${role}`;
+
+
+        assignedToSelect
+          .appendChild(option);
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     LOAD ONE ACTIVITY
+  ========================================================== */
+
+  async function loadActivity(
+    activityId
+  ) {
+
+    if (!activityId) {
+      return;
+    }
+
+
+    loadingActivity =
+      true;
+
+
+    showMessage(
+      "Loading activity..."
+    );
+
+
+    try {
+
+      const response =
+        await apiRequest(
+          `${API_BASE}/activities/${activityId}`
+        );
+
+
+      const activity =
+        response?.activity ||
+        response?.data ||
+        response;
+
+
+      currentActivityId =
+        getId(activity);
+
+
+      /*
+       * GENERAL INFORMATION
+       */
+
+      document.getElementById(
+        "name"
+      ).value =
+        activity.name || "";
+
+
+      document.getElementById(
+        "description"
+      ).value =
+        activity.description || "";
+
+
+      document.getElementById(
+        "activityCode"
+      ).value =
+        activity.activityCode || "";
+
+
+      document.getElementById(
+        "sequence"
+      ).value =
+        activity.sequence ?? 0;
+
+
+      /*
+       * STAGE
+       */
+
+      const activityStageId =
+        getId(
+          activity.stage
+        );
+
+
+      renderStageOptions(
+        activityStageId
+      );
+
+
+      stageSelect.value =
+        activityStageId;
+
+
+      /*
+       * PARENT ACTIVITY
+       */
+
+      const parentActivityId =
+        getId(
+          activity.parentActivity
+        );
+
+
+      await loadStageActivities(
+        activityStageId,
+        parentActivityId
+      );
+
+
+      /*
+       * STATUS / PROGRESS
+       */
+
+      document.getElementById(
+        "status"
+      ).value =
+        activity.status ||
+        "Not Started";
+
+
+      document.getElementById(
+        "progress"
+      ).value =
+        activity.progress ??
+        0;
+
+
+      originalProgress =
+        Number(
+          activity.progress
+        ) || 0;
+
+
+      /*
+       * SCHEDULE
+       */
+
+      startDateInput.value =
+        dateInputValue(
+          activity.startDate
+        );
+
+
+      plannedEndDateInput.value =
+        dateInputValue(
+          activity.plannedEndDate
+        );
+
+
+      document.getElementById(
+        "actualStartDate"
+      ).value =
+        dateInputValue(
+          activity.actualStartDate
+        );
+
+
+      document.getElementById(
+        "actualEndDate"
+      ).value =
+        dateInputValue(
+          activity.actualEndDate
+        );
+
+
+      /*
+       * Duration is calculated from
+       * the schedule rather than blindly
+       * trusting the stored value.
+       */
+
+      calculateDuration();
+
+
+      /*
+       * RESPONSIBILITY
+       */
+
+      organisationSelect.value =
+        getId(
+          activity.responsibleOrganisation
+        );
+
+
+      const assignedIds =
+        Array.isArray(
+          activity.assignedTo
+        )
+          ? activity.assignedTo.map(
+              getId
+            )
+          : [];
+
+
+      Array.from(
+        assignedToSelect.options
+      ).forEach(
+        option => {
+
+          option.selected =
+            assignedIds.includes(
+              option.value
+            );
+
+        }
+      );
+
+
+      /*
+       * NOTES
+       */
+
+      document.getElementById(
+        "notes"
+      ).value =
+        activity.notes || "";
+
+
+      /*
+       * ACTIVE
+       */
+
+      document.getElementById(
+        "isActive"
+      ).checked =
+        activity.isActive !== false;
+
+
+      /*
+       * LAST ASSESSMENT
+       */
+
+      assessmentDateInput.value =
+        dateInputValue(
+          activity.lastProgressAssessmentDate
+        );
+
+
+      /*
+       * Performance index is recalculated
+       * from the current schedule/progress.
+       */
+
+      calculatePerformanceIndex();
+
+
+      clearMessage();
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load activity:",
+        error
+      );
+
+
+      showMessage(
+        error.message ||
+        "Failed to load activity.",
+        "error"
+      );
+
+    } finally {
+
+      loadingActivity =
+        false;
+
+    }
+
+  }
+
+
+  /* =========================================================
+     RESET FORM
+  ========================================================== */
+
+  function resetForm() {
+
+    loadingActivity =
+      true;
+
+
+    form.reset();
+
+
+    currentActivityId =
+      null;
+
+
+    originalProgress =
+      null;
+
+
+    document.getElementById(
+      "status"
+    ).value =
+      "Not Started";
+
+
+    document.getElementById(
+      "progress"
+    ).value =
+      0;
+
+
+    document.getElementById(
+      "sequence"
+    ).value =
+      0;
+
+
+    document.getElementById(
+      "isActive"
+    ).checked =
+      true;
+
+
+    stageSelect.value =
+      "";
+
+
+    durationInput.value =
+      "";
+
+
+    performanceInput.value =
+      "";
+
+
+    performanceStatus.textContent =
+      "Awaiting schedule";
+
+
+    performanceStatus.className =
+      "calculated-status";
+
+
+    assessmentDateInput.value =
+      "";
+
+
+    stageActivities =
+      [];
+
+
+    renderParentActivities();
+
+
+    loadingActivity =
+      false;
+
+
+    clearMessage();
+
+  }
+
+
+  /* =========================================================
+     CHANGE MODE
+  ========================================================== */
+
+  async function setMode(
+    mode
+  ) {
+
+    currentMode =
+      mode;
+
+
+    modeButtons.forEach(
+      button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.mode ===
+            mode
+        );
+
+      }
+    );
+
+
+    resetForm();
+
+
+    if (
+      mode ===
+      "create"
+    ) {
+
+      editActivityContainer.hidden =
+        true;
+
+
+      formTitle.textContent =
+        "Create Activity";
+
+
+      formDescription.textContent =
+        "Create a new activity and assign it to a stage.";
+
+
+      submitButton.textContent =
+        "Create Activity";
+
+
+      return;
+
+    }
+
+
+    editActivityContainer.hidden =
+      false;
+
+
+    formTitle.textContent =
+      "Edit Activity";
+
+
+    formDescription.textContent =
+      "Select an existing activity and update its details.";
+
+
+    submitButton.textContent =
+      "Update Activity";
+
+
+    await loadAllActivities();
+
+  }
+
+
+  /* =========================================================
+     BUILD PAYLOAD
+  ========================================================== */
+
+  function buildPayload() {
+
+    const assignedUsers =
+      Array.from(
+        assignedToSelect.selectedOptions
+      ).map(
+        option =>
+          option.value
+      );
+
+
+    /*
+     * Recalculate duration immediately
+     * before saving.
+     */
+
+    const calculatedDuration =
+      calculateDuration();
+
+
+    /*
+     * Recalculate performance immediately
+     * before saving.
+     */
+
+    const calculatedPerformance =
+      calculatePerformanceIndex();
+
+
+    const payload = {
+
+      stage:
+        stageSelect.value,
+
+      parentActivity:
+        parentActivitySelect.value ||
+        null,
+
+      name:
+        document.getElementById(
+          "name"
+        ).value.trim(),
+
+      description:
+        document.getElementById(
+          "description"
+        ).value.trim(),
+
+      activityCode:
+        document.getElementById(
+          "activityCode"
+        ).value.trim(),
+
+      sequence:
+        Number(
+          document.getElementById(
+            "sequence"
+          ).value
+        ) || 0,
+
+      status:
+        document.getElementById(
+          "status"
+        ).value,
+
+      progress:
+        Number(
+          progressInput.value
+        ) || 0,
+
+      startDate:
+        startDateInput.value ||
+        null,
+
+      plannedEndDate:
+        plannedEndDateInput.value ||
+        null,
+
+      actualStartDate:
+        document.getElementById(
+          "actualStartDate"
+        ).value ||
+        null,
+
+      actualEndDate:
+        document.getElementById(
+          "actualEndDate"
+        ).value ||
+        null,
+
+      durationDays:
+        calculatedDuration,
+
+      responsibleOrganisation:
+        organisationSelect.value ||
+        null,
+
+      assignedTo:
+        assignedUsers,
+
+      notes:
+        document.getElementById(
+          "notes"
+        ).value.trim(),
+
+      isActive:
+        document.getElementById(
+          "isActive"
+        ).checked,
+
+      latestPerformanceIndex:
+        calculatedPerformance === null
+          ? null
+          : Number(
+              calculatedPerformance.toFixed(
+                2
+              )
+            ),
+
+      lastProgressAssessmentDate:
+        assessmentDateInput.value ||
+        null
+
+    };
+
+
+    /*
+     * Project is required during creation.
+     */
+
+    if (
+      currentMode ===
+      "create"
+    ) {
+
+      payload.project =
+        projectId;
+
+    }
+
+
+    return payload;
+
+  }
+
+
+  /* =========================================================
+     PROGRESS CHANGE
+  ========================================================== */
+
+  progressInput.addEventListener(
+    "input",
+    () => {
+
+      /*
+       * Only update the assessment date
+       * after the user changes progress.
+       */
+
+      if (
+        !loadingActivity
+      ) {
+
+        const currentProgress =
+          Number(
+            progressInput.value
+          ) || 0;
+
+
+        if (
+          originalProgress === null ||
+          currentProgress !==
+            originalProgress
+        ) {
+
+          assessmentDateInput.value =
+            todayInputValue();
+
+        }
+
+      }
+
+
+      calculatePerformanceIndex();
+
+    }
+  );
+
+
+  /* =========================================================
+     SCHEDULE CHANGE
+  ========================================================== */
+
+  startDateInput.addEventListener(
+    "change",
+    () => {
+
+      calculateDuration();
+
+      calculatePerformanceIndex();
+
+    }
+  );
+
+
+  plannedEndDateInput.addEventListener(
+    "change",
+    () => {
+
+      calculateDuration();
+
+      calculatePerformanceIndex();
+
+    }
+  );
+
+
+  /* =========================================================
+     STAGE CHANGE
+  ========================================================== */
+
+  stageSelect.addEventListener(
+    "change",
+    async () => {
+
+      const stageId =
+        stageSelect.value;
+
+
+      await loadStageActivities(
+        stageId
+      );
+
+    }
+  );
+
+
+  /* =========================================================
+     EDIT ACTIVITY CHANGE
+  ========================================================== */
+
+  editActivitySelect.addEventListener(
+    "change",
+    async () => {
+
+      const activityId =
+        editActivitySelect.value;
+
+
+      if (!activityId) {
+
+        resetForm();
+
+        return;
+
+      }
+
+
+      await loadActivity(
+        activityId
+      );
+
+  });
+
+
+  /* =========================================================
+     MODE BUTTONS
+  ========================================================== */
+
+  modeButtons.forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        async () => {
+
+          await setMode(
+            button.dataset.mode
+          );
+
+        }
+      );
+
+    }
+  );
+
+
+  /* =========================================================
+     RESET BUTTON
+  ========================================================== */
+
+  resetButton.addEventListener(
+    "click",
+    () => {
+
+      resetForm();
+
+
+      if (
+        currentMode ===
+        "edit"
+      ) {
+
+        editActivitySelect.value =
+          "";
+
+      }
+
+    }
+  );
+
+
+  /* =========================================================
+     FORM SUBMIT
+  ========================================================== */
+
+  form.addEventListener(
+    "submit",
+    async event => {
+
+      event.preventDefault();
+
+
+      clearMessage();
+
+
+      /*
+       * Validate name.
+       */
+
+      const name =
+        document.getElementById(
+          "name"
+        ).value.trim();
+
+
+      if (!name) {
+
+        showMessage(
+          "Activity name is required.",
+          "error"
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Validate stage.
+       */
+
+      if (
+        !stageSelect.value
+      ) {
+
+        showMessage(
+          "Please select a stage or substage.",
+          "error"
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Edit requires an activity.
+       */
+
+      if (
+        currentMode ===
+          "edit" &&
+        !currentActivityId
+      ) {
+
+        showMessage(
+          "Please select an activity to edit.",
+          "error"
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Prevent self-parenting.
+       */
+
+      if (
+        currentActivityId &&
+        parentActivitySelect.value ===
+          currentActivityId
+      ) {
+
+        showMessage(
+          "An activity cannot be its own parent.",
+          "error"
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Validate schedule.
+       */
+
+      if (
+        startDateInput.value &&
+        plannedEndDateInput.value
+      ) {
+
+        const start =
+          new Date(
+            `${startDateInput.value}T00:00:00`
+          );
+
+        const end =
+          new Date(
+            `${plannedEndDateInput.value}T00:00:00`
+          );
+
+
+        if (
+          end <
+          start
+        ) {
+
+          showMessage(
+            "Planned End cannot be before Planned Start.",
+            "error"
+          );
+
+          return;
+
+        }
+
+      }
+
+
+      /*
+       * Validate progress.
+       */
+
+      const progress =
+        Number(
+          progressInput.value
+        );
+
+
+      if (
+        progress < 0 ||
+        progress > 100
+      ) {
+
+        showMessage(
+          "Progress must be between 0 and 100.",
+          "error"
+        );
+
+        return;
+
+      }
+
+
+      const payload =
+        buildPayload();
+
+
+      submitButton.disabled =
+        true;
+
+
+      submitButton.textContent =
+        currentMode ===
+          "create"
+          ? "Creating..."
+          : "Updating...";
+
+
+      try {
+
+        let result;
+
+
+        /*
+         * CREATE
+         */
+
+        if (
+          currentMode ===
+          "create"
+        ) {
+
+          result =
+            await apiRequest(
+              `${API_BASE}/activities`,
+              {
+                method:
+                  "POST",
+
+                body:
+                  JSON.stringify(
+                    payload
+                  )
+              }
+            );
+
+
+          showMessage(
+            "Activity created successfully.",
+            "success"
+          );
+
+        }
+
+
+        /*
+         * UPDATE
+         */
+
+        else {
+
+          result =
+            await apiRequest(
+              `${API_BASE}/activities/${currentActivityId}`,
+              {
+                method:
+                  "PUT",
+
+                body:
+                  JSON.stringify(
+                    payload
+                  )
+              }
+            );
+
+
+          showMessage(
+            "Activity updated successfully.",
+            "success"
+          );
+
+        }
+
+
+        /*
+         * Notify the parent dashboard.
+         */
+
+        document.dispatchEvent(
+          new CustomEvent(
+            "activity:saved",
+            {
+              detail: {
+
+                mode:
+                  currentMode,
+
+                activity:
+                  result?.activity ||
+                  result?.data ||
+                  result
+
+              }
+            }
+          )
+        );
+
+
+        /*
+         * Refresh activity lists.
+         */
+
+        await loadAllActivities();
+
+
+        if (
+          stageSelect.value
+        ) {
+
+          await loadStageActivities(
+            stageSelect.value
+          );
+
+        }
+
+
+        /*
+         * CREATE:
+         * clear the form after saving.
+         */
+
+        if (
+          currentMode ===
+          "create"
+        ) {
+
+          resetForm();
+
+        }
+
+
+        /*
+         * EDIT:
+         * retain selected activity.
+         */
+
+        else {
+
+          editActivitySelect.value =
+            currentActivityId;
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Activity save failed:",
+          error
+        );
+
+
+        showMessage(
+          error.message ||
+          "Failed to save activity.",
+          "error"
+        );
+
+      } finally {
+
+        submitButton.disabled =
+          false;
+
+
+        submitButton.textContent =
+          currentMode ===
+            "create"
+            ? "Create Activity"
+            : "Update Activity";
+
+      }
+
+    }
+  );
+
+
+  /* =========================================================
+     INITIALISE
+  ========================================================== */
+
+  async function initialise() {
+
+    try {
+
+      /*
+       * Load independent data concurrently.
+       */
+
+      await Promise.all([
+        loadStages(),
+        loadOrganisations(),
+        loadUsers()
+      ]);
+
+
+      /*
+       * Activities depend on stages.
+       */
+
+      await loadAllActivities();
+
+
+      await setMode(
+        "create"
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Activity form initialisation failed:",
+        error
+      );
+
+
+      showMessage(
+        error.message ||
+        "Failed to initialise activity form.",
+        "error"
+      );
+
+    }
+
+  }
+
+
+  initialise();
+
+</script>
+
+
+<style>
+
+  /* =========================================================
+     CARD
+  ========================================================== */
+
+  .activity-form-card {
+
+    width: 100%;
+
+    padding: 1.5rem;
+
+    box-sizing: border-box;
+
+    border-radius: 12px;
+
+    background:
+      var(--color-background);
+
+    border:
+      1px solid
+      var(--color-border);
+
+  }
+
+
+  /* =========================================================
+     HEADER
+  ========================================================== */
+
+  .activity-form-header {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 1.5rem;
+
+    padding-bottom: 1.25rem;
+
+    border-bottom:
+      1px solid
+      var(--color-border);
+
+  }
+
+
+  .activity-form-heading {
+
+    flex: 1;
+
+  }
+
+
+  .activity-form-eyebrow {
+
+    display: block;
+
+    margin-bottom: 5px;
+
+    color:
+      var(--color-primary);
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.06em;
+
+  }
+
+
+  .activity-form-heading h2 {
+
+    margin:
+      0 0 6px;
+
+    color:
+      var(--color-text);
+
+    font-family:
+      var(--font-primary);
+
+    font-size: 22px;
+
+    font-weight:
+      var(--weight-semibold, 600);
+
+  }
+
+
+  .activity-form-heading p {
+
+    margin: 0;
+
+    color:
+      var(--color-text-secondary);
+
+    font-size: 13px;
+
+  }
+
+
+  /* =========================================================
+     MODE TOGGLE
+  ========================================================== */
+
+  .activity-mode-toggle {
+
+    display: flex;
+
+    padding: 4px;
+
+    border:
+      1px solid
+      var(--color-border);
+
+    border-radius: 10px;
+
+    background:
+      var(--color-surface);
+
+  }
+
+
+  .activity-mode-button {
+
+    border: none;
+
+    padding:
+      8px 14px;
+
+    border-radius: 7px;
+
+    background:
+      transparent;
+
+    color:
+      var(--color-text-secondary);
+
+    font-family:
+      var(--font-primary);
+
+    font-size:
+      13px;
+
+    font-weight:
+      500;
+
+    cursor:
+      pointer;
+
+    transition:
+      var(--transition);
+
+  }
+
+
+  .activity-mode-button:hover {
+
+    background:
+      var(--color-surface-hover);
+
+    color:
+      var(--color-text);
+
+  }
+
+
+  .activity-mode-button.active {
+
+    background:
+      var(--color-primary-100);
+
+    color:
+      var(--color-primary);
+
+    font-weight:
+      600;
+
+  }
+
+
+  /* =========================================================
+     FORM SECTIONS
+  ========================================================== */
+
+  .form-section {
+
+    padding:
+      1.25rem 0;
+
+    border-bottom:
+      1px solid
+      var(--color-border);
+
+  }
+
+
+  .edit-activity-section {
+
+    padding-top: 0;
+
+  }
+
+
+  .section-heading {
+
+    margin-bottom:
+      1rem;
+
+  }
+
+
+  .section-heading h3 {
+
+    margin:
+      0 0 4px;
+
+    color:
+      var(--color-text);
+
+    font-size:
+      15px;
+
+    font-weight:
+      600;
+
+  }
+
+
+  .section-heading p {
+
+    margin: 0;
+
+    color:
+      var(--color-text-secondary);
+
+    font-size:
+      12px;
+
+  }
+
+
+  /* =========================================================
+     FORM GRID
+  ========================================================== */
+
+  .form-grid {
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      1rem;
+
+  }
+
+
+  .form-group {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+  }
+
+
+  .form-group-full {
+
+    grid-column:
+      1 / -1;
+
+  }
+
+
+  .form-group label {
+
+    color:
+      var(--color-text);
+
+    font-size:
+      12px;
+
+    font-weight:
+      600;
+
+  }
+
+
+  .required {
+
+    color:
+      var(--color-error);
+
+  }
+
+
+  /* =========================================================
+     INPUTS
+  ========================================================== */
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding:
+      10px 12px;
+
+    border:
+      1px solid
+      var(--color-border);
+
+    border-radius:
+      8px;
+
+    background:
+      var(--color-background);
+
+    color:
+      var(--color-text);
+
+    font-family:
+      var(--font-primary);
+
+    font-size:
+      13px;
+
+    outline:
+      none;
+
+    transition:
+      var(--transition);
+
+  }
+
+
+  .form-group textarea {
+
+    min-height:
+      90px;
+
+    resize:
+      vertical;
+
+  }
+
+
+  .form-group select[multiple] {
+
+    min-height:
+      110px;
+
+  }
+
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+
+    border-color:
+      var(--color-primary);
+
+    box-shadow:
+      0 0 0 3px
+      var(--color-primary-50);
+
+  }
+
+
+  .form-group input:read-only {
+
+    background:
+      var(--color-surface);
+
+    cursor:
+      default;
+
+  }
+
+
+  /* =========================================================
+     CALCULATED FIELDS
+  ========================================================== */
+
+  .calculated-field {
+
+    position:
+      relative;
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+  }
+
+
+  .calculated-field input {
+
+    padding-right:
+      55px;
+
+  }
+
+
+  .calculated-unit {
+
+    position:
+      absolute;
+
+    right:
+      12px;
+
+    color:
+      var(--color-text-secondary);
+
+    font-size:
+      12px;
+
+    pointer-events:
+      none;
+
+  }
+
+
+  .calculated-status {
+
+    margin-top:
+      2px;
+
+    color:
+      var(--color-text-secondary);
+
+    font-size:
+      11px;
+
+  }
+
+
+  /* =========================================================
+     HELP TEXT
+  ========================================================== */
+
+  .field-help {
+
+    color:
+      var(--color-text-secondary);
+
+    font-size:
+      11px;
+
+    line-height:
+      1.4;
+
+  }
+
+
+  /* =========================================================
+     CHECKBOX
+  ========================================================== */
+
+  .checkbox-label {
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    gap:
+      9px;
+
+    color:
+      var(--color-text);
+
+    font-size:
+      13px;
+
+    cursor:
+      pointer;
+
+  }
+
+
+  .checkbox-label input {
+
+    width:
+      16px;
+
+    height:
+      16px;
+
+    margin:
+      0;
+
+    accent-color:
+      var(--color-primary);
+
+    cursor:
+      pointer;
+
+  }
+
+
+  /* =========================================================
+     ACTIONS
+  ========================================================== */
+
+  .form-actions {
+
+    display:
+      flex;
+
+    justify-content:
+      flex-end;
+
+    gap:
+      10px;
+
+    padding-top:
+      1.5rem;
+
+  }
+
+
+  .primary-button,
+  .secondary-button {
+
+    padding:
+      10px 18px;
+
+    border-radius:
+      8px;
+
+    font-family:
+      var(--font-primary);
+
+    font-size:
+      13px;
+
+    font-weight:
+      600;
+
+    cursor:
+      pointer;
+
+    transition:
+      var(--transition);
+
+  }
+
+
+  .primary-button {
+
+    border:
+      1px solid
+      var(--color-primary);
+
+    background:
+      var(--color-primary);
+
+    color:
+      #fff;
+
+  }
+
+
+  .primary-button:hover {
+
+    border-color:
+      var(--color-primary-hover);
+
+    background:
+      var(--color-primary-hover);
+
+  }
+
+
+  .primary-button:disabled {
+
+    opacity:
+      0.6;
+
+    cursor:
+      not-allowed;
+
+  }
+
+
+  .secondary-button {
+
+    border:
+      1px solid
+      var(--color-border);
+
+    background:
+      var(--color-surface);
+
+    color:
+      var(--color-text);
+
+  }
+
+
+  .secondary-button:hover {
+
+    background:
+      var(--color-surface-hover);
+
+  }
+
+
+  /* =========================================================
+     MESSAGE
+  ========================================================== */
+
+  .form-message {
+
+    min-height:
+      20px;
+
+    margin-top:
+      1rem;
+
+    font-size:
+      13px;
+
+  }
+
+
+  .form-message.success {
+
+    color:
+      #16a34a;
+
+  }
+
+
+  .form-message.error {
+
+    color:
+      var(--color-error);
+
+  }
+
+
+  /* =========================================================
+     RESPONSIVE
+  ========================================================== */
+
+  @media (
+    max-width: 700px
+  ) {
+
+    .activity-form-header {
+
+      flex-direction:
+        column;
+
+    }
+
+
+    .activity-mode-toggle {
+
+      width:
+        100%;
+
+    }
+
+
+    .activity-mode-button {
+
+      flex:
+        1;
+
+    }
+
+
+    .form-grid {
+
+      grid-template-columns:
+        1fr;
+
+    }
+
+
+    .form-group-full {
+
+      grid-column:
+        auto;
+
+    }
+
+  }
+
+</style>

@@ -1,0 +1,38 @@
+
+export function getAuth() {
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
+
+  const userStorage =
+    localStorage.getItem("user") ||
+    sessionStorage.getItem("user");
+
+  let user = null;
+
+  if (userStorage) {
+    try {
+      user = JSON.parse(userStorage);
+    } catch {
+      user = null;
+    }
+  }
+
+  return {
+    token,
+    user,
+    isAuthenticated: !!token,
+  };
+}
+
+export function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("organisation");
+
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+  sessionStorage.removeItem("organisation");
+
+  window.location.href = "/login";
+}

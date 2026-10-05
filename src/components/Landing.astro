@@ -1584,8 +1584,9 @@ const {
    */
 
   import { getAuth, logout } from "../lib/auth.js";
+  import { withBase } from "../lib/config.js";
 
-
+  const APP_BASE = import.meta.env.BASE_URL || "/";
 
   // ===================================
   // DOM ELEMENTS
@@ -1631,7 +1632,8 @@ const {
 
     if (!auth.isAuthenticated) {
 
-      window.location.href = withBase("/login");
+      const loginUrl = `${APP_BASE}login`;
+      window.location.href = loginUrl;
 
       return false;
     }

@@ -12,8 +12,10 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.10",
     "apexcharts": "^7.5.1",
-    "astro": "^7.3.2"
+    "astro": "^7.3.2",
+    "typescript": "^6.0.3"
   },
   "allowScripts": {
     "esbuild": true

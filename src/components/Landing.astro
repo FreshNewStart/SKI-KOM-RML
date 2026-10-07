@@ -403,28 +403,28 @@ const {
             heading="Active"
             activeActivities={activeActivities}
             activeStages={activeStages}
-            animation="/1.json"
+            animation={withBase("/1.json")}
           />
 
           <StatCard
             heading="Completed"
             activeActivities={completedActivities}
             activeStages={completedStages}
-            animation="/2.json"
+            animation={withBase("/2.json")}
           />
 
           <StatCard
             heading="Not Started"
             activeActivities={notStartedActivities}
             activeStages={notStartedStages}
-            animation="/3.json"
+            animation={withBase("/3.json")}
           />
 
           <StatCard
             heading="On Hold"
             activeActivities={onHoldActivities}
             activeStages={onHoldStages}
-            animation="/4.json"
+            animation={withBase("/4.json")}
           />
 
         </div>
@@ -1572,7 +1572,7 @@ const {
 
 </style>
 
-<script>
+<script type="module">
   /*
    * AUTHENTICATION
    * --------------------------------------------------

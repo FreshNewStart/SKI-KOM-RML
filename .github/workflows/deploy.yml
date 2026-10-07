@@ -35,6 +35,7 @@ jobs:
           GITHUB_ACTIONS: true
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          PUBLIC_API_URL: https://leachy-fleeringly-saniya.ngrok-free.dev/api
         run: npm run build
 
       - name: Upload artifact

@@ -746,12 +746,12 @@ const {
   const loginForm =
     document.querySelector(
       ".login-card form"
-    );
+    ) as HTMLFormElement | null;
 
   const loginButton =
     document.querySelector(
       ".login-button"
-    );
+    ) as HTMLButtonElement | null;
 
 
   /*
@@ -781,18 +781,21 @@ const {
         const emailInput =
           document.querySelector(
             "#email"
-          );
+          ) as HTMLInputElement | null;
 
         const passwordInput =
           document.querySelector(
             "#password"
-          );
+          ) as HTMLInputElement | null;
 
         const rememberInput =
           document.querySelector(
             'input[name="remember"]'
-          );
+          ) as HTMLInputElement | null;
 
+        if (!emailInput || !passwordInput) {
+          return;
+        }
 
         const email =
           emailInput.value
@@ -911,7 +914,7 @@ const {
            */
 
           const storage =
-            rememberInput.checked
+            rememberInput?.checked
               ? localStorage
               : sessionStorage;
 
@@ -944,13 +947,18 @@ const {
 
           if (
             result.user &&
-            result.user.organisation
+            result.user.organisation !== undefined &&
+            result.user.organisation !== null
           ) {
+            const organisation =
+              typeof result.user.organisation === "string"
+                ? { _id: result.user.organisation }
+                : result.user.organisation;
 
             storage.setItem(
               "organisation",
               JSON.stringify(
-                result.user.organisation
+                organisation
               )
             );
 
@@ -987,15 +995,16 @@ const {
             error
           );
 
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to sign in.";
 
           /*
            * Show error message.
            */
 
-          alert(
-            error.message ||
-            "Unable to sign in."
-          );
+          alert(message);
 
 
           /*

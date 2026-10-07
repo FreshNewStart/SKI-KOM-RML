@@ -9,7 +9,12 @@ export function getAuth() {
     localStorage.getItem("user") ||
     sessionStorage.getItem("user");
 
+  const organisationStorage =
+    localStorage.getItem("organisation") ||
+    sessionStorage.getItem("organisation");
+
   let user = null;
+  let organisation = null;
 
   if (userStorage) {
     try {
@@ -19,9 +24,18 @@ export function getAuth() {
     }
   }
 
+  if (organisationStorage) {
+    try {
+      organisation = JSON.parse(organisationStorage);
+    } catch {
+      organisation = organisationStorage;
+    }
+  }
+
   return {
     token,
     user,
+    organisation,
     isAuthenticated: !!token,
   };
 }

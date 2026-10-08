@@ -18,6 +18,11 @@ browser, so the API must be reachable over HTTPS while the site is in use.
 `PUBLIC_API_URL` is required at build time. The same value is used by login,
 dashboard, forms, and uploads.
 
+The dashboard signs the user out after 30 minutes without keyboard, pointer,
+scroll, or touch activity. The idle timeout is shared across open tabs and is
+checked again when returning to a background tab. This clears the app's saved
+login token; a password saved by the browser can still be used to sign in again.
+
 ## GitHub Pages deployment
 
 In the GitHub repository, add an Actions **variable** named `PUBLIC_API_URL`

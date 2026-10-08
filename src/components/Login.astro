@@ -919,6 +919,13 @@ const {
               ? localStorage
               : sessionStorage;
 
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("organisation");
+          sessionStorage.removeItem("token");
+          sessionStorage.removeItem("user");
+          sessionStorage.removeItem("organisation");
+          localStorage.setItem("auth.lastActivity", String(Date.now()));
 
           storage.setItem(
             "token",

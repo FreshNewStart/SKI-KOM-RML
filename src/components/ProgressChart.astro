@@ -33,7 +33,7 @@ const { projectId } = Astro.props;
 
   import ApexCharts from "apexcharts";
   import { API_BASE_URL } from "../lib/config.js";
-  import { getAuthHeaders } from "../lib/auth.js";
+  import { getAuthHeaders, logout } from "../lib/auth.js";
 
   const chartElement =
     document.querySelector("#stageTimelineChart");
@@ -68,6 +68,10 @@ const { projectId } = Astro.props;
 
 
         if (!response.ok) {
+          if (response.status === 401) {
+            logout();
+            return;
+          }
 
           throw new Error(
             `Failed to fetch stages: ${response.status}`

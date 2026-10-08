@@ -8,8 +8,7 @@ import FileUploadForm from "./forms/FileUploadForm.astro";
 import { buildApiUrl, withBase } from "../lib/config";
 
 const projectId = "6aa81933b3f5dd584c234f38";
-
-const defaultOverview = {
+const overview = {
   activeActivities: 0,
   completedActivities: 0,
   onHoldActivities: 0,
@@ -19,22 +18,6 @@ const defaultOverview = {
   onHoldStages: 0,
   notStartedStages: 0,
 };
-
-let overview = defaultOverview;
-
-if (!import.meta.env.SSR) {
-  try {
-    const response = await fetch(
-      buildApiUrl(`/dashboard/overview/${projectId}`)
-    );
-
-    if (response.ok) {
-      overview = await response.json();
-    }
-  } catch (error) {
-    console.warn("Dashboard overview unavailable:", error);
-  }
-}
 
 const {
   activeActivities,
@@ -62,7 +45,7 @@ const {
   </div>
 </div>
 
-<div class="dashboard-container" id="dashboardContainer">
+<div class="dashboard-container" id="dashboardContainer" data-project-id={projectId}>
 
   <!-- Dashboard Sidebar -->
 
@@ -1583,7 +1566,7 @@ const {
    * If no token exists, the user is sent back to /login.
    */
 
-  import { getAuth, logout } from "../lib/auth.js";
+  import { getAuth, getAuthHeaders, logout } from "../lib/auth.js";
   import { withBase } from "../lib/config.js";
 
   const APP_BASE = import.meta.env.BASE_URL || "/";
@@ -1594,6 +1577,7 @@ const {
 
   const dashboardContainer =
     document.getElementById("dashboardContainer");
+  const projectId = dashboardContainer?.dataset.projectId;
 
   const dashboardAuthGuard =
     document.getElementById("dashboardAuthGuard");
@@ -1636,6 +1620,58 @@ const {
       window.location.href = loginUrl;
 
       return false;
+    }
+
+    async function loadDashboardOverview() {
+      try {
+        if (!projectId) {
+          throw new Error("Dashboard project ID is missing.");
+        }
+
+        const response = await fetch(
+          buildApiUrl(`/dashboard/overview/${projectId}`),
+          { headers: getAuthHeaders() }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Dashboard overview request failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const overview = result?.data?.overview ?? result?.data ?? result;
+
+        if (!overview || typeof overview !== "object") {
+          throw new Error("Dashboard overview response has an invalid format.");
+        }
+
+        const overviewKeys = {
+          active: { activities: "activeActivities", stages: "activeStages" },
+          completed: { activities: "completedActivities", stages: "completedStages" },
+          "not-started": { activities: "notStartedActivities", stages: "notStartedStages" },
+          "on-hold": { activities: "onHoldActivities", stages: "onHoldStages" },
+        };
+
+        const expectedKeys = Object.values(overviewKeys).flatMap(Object.values);
+        if (!expectedKeys.some((key) => key in overview)) {
+          throw new Error("Dashboard overview response is missing activity and stage counts.");
+        }
+
+        for (const [status, keys] of Object.entries(overviewKeys)) {
+          const card = document.querySelector(`[data-status="${status}"]`);
+          if (!card) continue;
+
+          for (const countType of ["activities", "stages"]) {
+            const value = overview[keys[countType]];
+            const count = card.querySelector(`[data-count="${countType}"]`);
+
+            if (count && value !== undefined && value !== null) {
+              count.textContent = String(value);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Dashboard overview unavailable:", error);
+      }
     }
 
 
@@ -1812,6 +1848,7 @@ const {
   } else {
 
     initSignOut();
+    loadDashboardOverview();
 
   }
 

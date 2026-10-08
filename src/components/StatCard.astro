@@ -14,19 +14,19 @@ const {
 } = Astro.props;
 ---
 
-<div class="stat-card">
+<div class="stat-card" data-status={heading.toLowerCase().replaceAll(" ", "-")}>
 
   <div class="stat-card-content">
     <h3>{heading}</h3>
 
     <div class="stat-card-numbers">
       <div>
-        <span class="number">{activeActivities}</span>
+        <span class="number" data-count="activities">{activeActivities}</span>
         <span class="label">Activities</span>
       </div>
 
       <div>
-        <span class="number">{activeStages}</span>
+        <span class="number" data-count="stages">{activeStages}</span>
         <span class="label">Stages</span>
       </div>
     </div>

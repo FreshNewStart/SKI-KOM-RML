@@ -32,6 +32,8 @@ const { projectId } = Astro.props;
   console.log("🔥 STAGE TIMELINE SCRIPT STARTED");
 
   import ApexCharts from "apexcharts";
+  import { API_BASE_URL } from "../lib/config.js";
+  import { getAuthHeaders } from "../lib/auth.js";
 
   const chartElement =
     document.querySelector("#stageTimelineChart");
@@ -59,10 +61,9 @@ const { projectId } = Astro.props;
 
       try {
 
-        const apiBase = import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api";
-
         const response = await fetch(
-          `${apiBase}/stages/project/${projectId}`
+          `${API_BASE_URL}/stages/project/${projectId}`,
+          { headers: getAuthHeaders() }
         );
 
 

@@ -1,5 +1,7 @@
-export const API_BASE_URL =
-  import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api";
+export const API_BASE_URL = (
+  import.meta.env.PUBLIC_API_URL ||
+  "https://leachy-fleeringly-saniya.ngrok-free.dev/api"
+).replace(/\/+$/, "");
 
 export function withBase(path = "/") {
   const base = import.meta.env.BASE_URL || "/";

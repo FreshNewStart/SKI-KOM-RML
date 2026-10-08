@@ -7,7 +7,7 @@ interface Props {
 
 const { projectId } = Astro.props;
 
-const API_BASE = API_BASE_URL;
+const API_BASE = API_BASE_URL.replace(/\/+$/, "");
 ---
 
 <div class="programme-revision-form">
@@ -817,13 +817,17 @@ const API_BASE = API_BASE_URL;
   }
 
   async function apiRequest(url, options = {}) {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
 
     const response = await fetch(`${API_BASE}${url}`, {
+      ...options,
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {})
       },
-      ...options
     });
 
     let data = null;

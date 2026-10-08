@@ -489,7 +489,7 @@ const { projectId } = Astro.props;
 <script define:vars={{ projectId }}>
 
   const API_BASE =
-    import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
+    (import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api").replace(/\/+$/, "");
 
 
   /*
@@ -746,19 +746,22 @@ const { projectId } = Astro.props;
     url,
     options = {}
   ) {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
 
     const response =
       await fetch(
         url,
         {
+          ...options,
           headers: {
             "Content-Type":
               "application/json",
 
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(options.headers || {})
-          },
-
-          ...options
+          }
         }
       );
 

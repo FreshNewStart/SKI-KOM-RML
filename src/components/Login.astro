@@ -731,7 +731,7 @@ const {
    */
 
   const API_URL =
-    `${import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api"}/auth/login`;
+    `${(import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api").replace(/\/+$/, "")}/auth/login`;
 
   const DASHBOARD_URL =
     import.meta.env.BASE_URL || "/";
@@ -1030,4 +1030,3 @@ const {
   }
 
 </script>
-

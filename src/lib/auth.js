@@ -40,6 +40,16 @@ export function getAuth() {
   };
 }
 
+export function getAuthHeaders() {
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
+
+  return token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+}
+
 export function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");

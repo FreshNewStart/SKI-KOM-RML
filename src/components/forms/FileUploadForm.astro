@@ -312,7 +312,7 @@ const { projectId } = Astro.props;
 </div>
 
 <script define:vars={{ projectId }}>
-  const API_BASE = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
+  const API_BASE = (import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api").replace(/\/+$/, "");
 
   const form = document.getElementById("fileUploadForm");
   const fileInput = document.getElementById("fileInput");
@@ -388,13 +388,15 @@ const { projectId } = Astro.props;
   };
 
   async function fetchArray(url) {
-  console.log("Fetching:", url);
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
 
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
 
   const result = await response.json();
-
-  console.log("API response:", result);
 
   if (!response.ok) {
     throw new Error(

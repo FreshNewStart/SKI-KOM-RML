@@ -1,11 +1,12 @@
 ---
 import StatCard from "./StatCard.astro";
 import ProgressChart from "./ProgressChart.astro";
+import StagesView from "./stages/StagesView.astro";
 import StageForm from "./forms/StageForm.astro";
 import MilestoneForm from "./forms/MilestoneForm.astro";
 import ProgramRivisionForm from "./forms/ProgramRivisionForm.astro";
 import FileUploadForm from "./forms/FileUploadForm.astro";
-import { buildApiUrl, withBase } from "../lib/config";
+import { API_BASE_URL, buildApiUrl, withBase } from "../lib/config";
 
 const projectId = "6aa81933b3f5dd584c234f38";
 const overview = {
@@ -425,26 +426,7 @@ const {
         id="stages"
       >
 
-        <div class="empty-state">
-
-          <div class="empty-state-icon">
-
-            <span class="material-symbols-rounded">
-              flowchart
-            </span>
-
-          </div>
-
-          <h3 class="empty-state-title">
-            Stages and Activities
-          </h3>
-
-          <p class="empty-state-description">
-            View your stages and activities here.
-            Track progress, and collaborate with your team.
-          </p>
-
-        </div>
+          <StagesView projectId={projectId} apiBase={API_BASE_URL} />
 
       </div>
 

@@ -1,0 +1,1349 @@
+---
+interface Props {
+  projectId: string;
+  apiBase: string;
+}
+
+const {
+  projectId,
+  apiBase,
+} = Astro.props;
+---
+
+<div
+  class="stage-tree"
+  id="stageTree"
+  data-project-id={projectId}
+  data-api-base={apiBase}
+>
+  <div class="tree-loading">
+    <span class="spinner"></span>
+    <span>Loading project structure...</span>
+  </div>
+</div>
+
+<script>
+  import { getAuthHeaders as getSharedAuthHeaders } from "../../lib/auth.js";
+
+  const treeContainer = document.getElementById("stageTree");
+  const { projectId, apiBase } = treeContainer.dataset;
+
+  let stageTree = [];
+
+  /*
+   * ------------------------------------------------------------
+   * API HELPERS
+   * ------------------------------------------------------------
+   */
+
+  async function fetchJSON(url) {
+    console.log("Fetching:", url);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getSharedAuthHeaders(),
+    });
+
+    const contentType =
+      response.headers.get("content-type") || "";
+
+    let result;
+
+    if (contentType.includes("application/json")) {
+      result = await response.json();
+    } else {
+      const text = await response.text();
+
+      throw new Error(
+        `Expected JSON but received: ${text.substring(0, 200)}`
+      );
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        result?.message ||
+        `Request failed with status ${response.status}`
+      );
+    }
+
+    return result;
+  }
+
+
+  function extractData(response) {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+      return response.data;
+    }
+
+    return [];
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * LOAD STAGES
+   * ------------------------------------------------------------
+   */
+
+  async function getTopLevelStages() {
+    const response = await fetchJSON(
+      `${apiBase}/stages/project/${projectId}`
+    );
+
+    return extractData(response);
+  }
+
+
+  async function getSubstages(stageId) {
+    const response = await fetchJSON(
+      `${apiBase}/stages/${stageId}/substages`
+    );
+
+    return extractData(response);
+  }
+
+
+  async function getActivities(stageId) {
+    const response = await fetchJSON(
+      `${apiBase}/activities/stage/${stageId}`
+    );
+
+    return extractData(response);
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * BUILD TREE
+   * ------------------------------------------------------------
+   */
+
+  async function buildStage(stage) {
+    const stageId = stage._id || stage.id;
+
+    /*
+     * Load substages and activities at the same time.
+     */
+    const [substages, activities] = await Promise.all([
+      getSubstages(stageId),
+      getActivities(stageId),
+    ]);
+
+    /*
+     * Recursively build every child stage.
+     */
+    const children = await Promise.all(
+      substages.map((substage) =>
+        buildStage(substage)
+      )
+    );
+
+    return {
+      ...stage,
+      activities,
+      substages: children,
+    };
+  }
+
+
+  async function loadTree() {
+    try {
+      showLoading();
+
+      const topLevelStages =
+        await getTopLevelStages();
+
+      console.log(
+        "Top-level stages:",
+        topLevelStages
+      );
+
+      stageTree = await Promise.all(
+        topLevelStages.map((stage) =>
+          buildStage(stage)
+        )
+      );
+
+      console.log(
+        "Complete stage tree:",
+        stageTree
+      );
+
+      renderTree();
+
+    } catch (error) {
+      console.error(
+        "Failed to load stage tree:",
+        error
+      );
+
+      showError(error.message);
+    }
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * DISPLAY HELPERS
+   * ------------------------------------------------------------
+   */
+
+  function getId(item) {
+    return item?._id || item?.id || "";
+  }
+
+
+  function escapeHTML(value) {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+
+  function getStatusClass(status) {
+    if (!status) return "status-default";
+
+    return (
+      "status-" +
+      status
+        .toLowerCase()
+        .replaceAll(" ", "-")
+    );
+  }
+
+
+  function getProgress(value) {
+    const progress = Number(value);
+
+    if (Number.isNaN(progress)) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      Math.min(100, progress)
+    );
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * RENDER ACTIVITY
+   * ------------------------------------------------------------
+   */
+
+  function renderActivity(activity) {
+    const activityId = getId(activity);
+
+    const name =
+      activity.name ||
+      "Unnamed Activity";
+
+    const code =
+      activity.activityCode || "";
+
+    const progress =
+      getProgress(activity.progress);
+
+    const status =
+      activity.status ||
+      "Not Started";
+
+    return `
+      <div
+        class="tree-item activity-item"
+        data-type="activity"
+        data-id="${escapeHTML(activityId)}"
+      >
+
+        <div class="tree-indent activity-indent">
+          <span class="tree-branch">└</span>
+
+          <span class="activity-icon">
+            task_alt
+          </span>
+
+          <div class="item-content">
+
+            <div class="item-main">
+
+              <span class="item-name">
+                ${escapeHTML(name)}
+              </span>
+
+              ${
+                code
+                  ? `
+                    <span class="item-code">
+                      ${escapeHTML(code)}
+                    </span>
+                  `
+                  : ""
+              }
+
+            </div>
+
+            <div class="item-meta">
+
+              <span
+                class="status-badge ${getStatusClass(status)}"
+              >
+                ${escapeHTML(status)}
+              </span>
+
+              <span class="progress-text">
+                ${progress}%
+              </span>
+
+            </div>
+
+          </div>
+
+          <div class="item-progress">
+
+            <div class="progress-track">
+              <div
+                class="progress-fill"
+                style="width:${progress}%"
+              ></div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    `;
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * RENDER STAGE
+   * ------------------------------------------------------------
+   */
+
+  function renderStage(stage, level = 0) {
+    const stageId = getId(stage);
+
+    const name =
+      stage.name ||
+      "Unnamed Stage";
+
+    const code =
+      stage.code ||
+      "";
+
+    const status =
+      stage.status ||
+      "Not Started";
+
+    const progress =
+      getProgress(stage.progress);
+
+    const substages =
+      stage.substages || [];
+
+    const activities =
+      stage.activities || [];
+
+    const totalChildren =
+      substages.length +
+      activities.length;
+
+    const hasChildren =
+      totalChildren > 0;
+
+    return `
+      <div
+        class="stage-node"
+        data-stage-id="${escapeHTML(stageId)}"
+        data-level="${level}"
+      >
+
+        <div class="stage-row">
+
+          ${
+            hasChildren
+              ? `
+                <button
+                  type="button"
+                  class="expand-button"
+                  aria-expanded="false"
+                  title="Expand"
+                >
+                  <span class="material-symbols-rounded">
+                    chevron_right
+                  </span>
+                </button>
+              `
+              : `
+                <span class="expand-placeholder"></span>
+              `
+          }
+
+          <span class="stage-icon">
+            ${
+              level === 0
+                ? "account_tree"
+                : "subdirectory_arrow_right"
+            }
+          </span>
+
+          <div class="stage-main">
+
+            <div class="stage-title-row">
+
+              <span class="stage-name">
+                ${escapeHTML(name)}
+              </span>
+
+              ${
+                code
+                  ? `
+                    <span class="stage-code">
+                      ${escapeHTML(code)}
+                    </span>
+                  `
+                  : ""
+              }
+
+            </div>
+
+            <div class="stage-meta">
+
+              <span
+                class="status-badge ${getStatusClass(status)}"
+              >
+                ${escapeHTML(status)}
+              </span>
+
+              <span class="stage-progress">
+                ${progress}%
+              </span>
+
+            </div>
+
+          </div>
+
+          <div class="stage-progress-container">
+
+            <div class="progress-track">
+              <div
+                class="progress-fill"
+                style="width:${progress}%"
+              ></div>
+            </div>
+
+          </div>
+
+          <button
+            type="button"
+            class="stage-menu-button"
+            title="Stage options"
+          >
+            <span class="material-symbols-rounded">
+              more_vert
+            </span>
+          </button>
+
+        </div>
+
+
+        ${
+          hasChildren
+            ? `
+              <div class="stage-children">
+
+                ${
+                  substages.length
+                    ? substages
+                        .map((substage) =>
+                          renderStage(
+                            substage,
+                            level + 1
+                          )
+                        )
+                        .join("")
+                    : ""
+                }
+
+                ${
+                  activities.length
+                    ? `
+                      <div class="activities-container">
+
+                        ${activities
+                          .map(
+                            (activity) =>
+                              renderActivity(
+                                activity
+                              )
+                          )
+                          .join("")}
+
+                      </div>
+                    `
+                    : ""
+                }
+
+              </div>
+            `
+            : ""
+        }
+
+      </div>
+    `;
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * RENDER COMPLETE TREE
+   * ------------------------------------------------------------
+   */
+
+  function renderTree() {
+    if (!stageTree.length) {
+      treeContainer.innerHTML = `
+        <div class="empty-state">
+
+          <span class="material-symbols-rounded">
+            account_tree
+          </span>
+
+          <h3>No stages found</h3>
+
+          <p>
+            This project does not have any
+            top-level stages yet.
+          </p>
+
+        </div>
+      `;
+
+      return;
+    }
+
+    treeContainer.innerHTML = `
+      <div class="tree-header">
+
+        <div>
+          <h3>Project Structure</h3>
+
+          <p>
+            Stages, substages and activities
+          </p>
+        </div>
+
+        <div class="tree-actions">
+
+          <button
+            type="button"
+            id="expandAll"
+            class="tree-action"
+          >
+            Expand All
+          </button>
+
+          <button
+            type="button"
+            id="collapseAll"
+            class="tree-action"
+          >
+            Collapse All
+          </button>
+
+        </div>
+
+      </div>
+
+      <div class="tree-list">
+        ${stageTree
+          .map((stage) =>
+            renderStage(stage)
+          )
+          .join("")}
+      </div>
+    `;
+
+    attachTreeEvents();
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * TREE EVENTS
+   * ------------------------------------------------------------
+   */
+
+  function attachTreeEvents() {
+    /*
+     * Expand / collapse individual stages.
+     */
+    treeContainer
+      .querySelectorAll(".expand-button")
+      .forEach((button) => {
+
+        button.addEventListener(
+          "click",
+          (event) => {
+
+            event.stopPropagation();
+
+            const stageNode =
+              button.closest(".stage-node");
+
+            const children =
+              stageNode.querySelector(
+                ":scope > .stage-children"
+              );
+
+            if (!children) {
+              return;
+            }
+
+            const expanded =
+              button.getAttribute(
+                "aria-expanded"
+              ) === "true";
+
+            button.setAttribute(
+              "aria-expanded",
+              String(!expanded)
+            );
+
+            children.classList.toggle(
+              "is-open",
+              !expanded
+            );
+
+          }
+        );
+
+      });
+
+
+    /*
+     * Expand all.
+     */
+    const expandAll =
+      document.getElementById(
+        "expandAll"
+      );
+
+    if (expandAll) {
+      expandAll.addEventListener(
+        "click",
+        () => {
+
+          treeContainer
+            .querySelectorAll(
+              ".stage-node > .stage-children"
+            )
+            .forEach((children) => {
+              children.classList.add(
+                "is-open"
+              );
+            });
+
+          treeContainer
+            .querySelectorAll(
+              ".expand-button"
+            )
+            .forEach((button) => {
+              button.setAttribute(
+                "aria-expanded",
+                "true"
+              );
+            });
+
+        }
+      );
+    }
+
+
+    /*
+     * Collapse all.
+     */
+    const collapseAll =
+      document.getElementById(
+        "collapseAll"
+      );
+
+    if (collapseAll) {
+      collapseAll.addEventListener(
+        "click",
+        () => {
+
+          treeContainer
+            .querySelectorAll(
+              ".stage-node > .stage-children"
+            )
+            .forEach((children) => {
+              children.classList.remove(
+                "is-open"
+              );
+            });
+
+          treeContainer
+            .querySelectorAll(
+              ".expand-button"
+            )
+            .forEach((button) => {
+              button.setAttribute(
+                "aria-expanded",
+                "false"
+              );
+            });
+
+        }
+      );
+    }
+
+
+    /*
+     * Stage click.
+     */
+    treeContainer
+      .querySelectorAll(".stage-row")
+      .forEach((row) => {
+
+        row.addEventListener(
+          "click",
+          (event) => {
+
+            /*
+             * Don't trigger stage selection
+             * when clicking the expand button
+             * or menu button.
+             */
+            if (
+              event.target.closest(
+                ".expand-button"
+              ) ||
+              event.target.closest(
+                ".stage-menu-button"
+              )
+            ) {
+              return;
+            }
+
+            const stageNode =
+              row.closest(".stage-node");
+
+            const stageId =
+              stageNode?.dataset.stageId;
+
+            console.log(
+              "Stage selected:",
+              stageId
+            );
+
+            treeContainer.dispatchEvent(
+              new CustomEvent(
+                "stage-selected",
+                {
+                  bubbles: true,
+                  detail: {
+                    stageId,
+                  },
+                }
+              )
+            );
+
+          }
+        );
+
+      });
+
+
+    /*
+     * Activity click.
+     */
+    treeContainer
+      .querySelectorAll(
+        ".activity-item"
+      )
+      .forEach((item) => {
+
+        item.addEventListener(
+          "click",
+          () => {
+
+            const activityId =
+              item.dataset.id;
+
+            console.log(
+              "Activity selected:",
+              activityId
+            );
+
+            treeContainer.dispatchEvent(
+              new CustomEvent(
+                "activity-selected",
+                {
+                  bubbles: true,
+                  detail: {
+                    activityId,
+                  },
+                }
+              )
+            );
+
+          }
+        );
+
+      });
+
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * UI STATES
+   * ------------------------------------------------------------
+   */
+
+  function showLoading() {
+    treeContainer.innerHTML = `
+      <div class="tree-loading">
+
+        <span class="spinner"></span>
+
+        <span>
+          Loading project structure...
+        </span>
+
+      </div>
+    `;
+  }
+
+
+  function showError(message) {
+    treeContainer.innerHTML = `
+      <div class="tree-error">
+
+        <span class="material-symbols-rounded">
+          error
+        </span>
+
+        <div>
+
+          <strong>
+            Unable to load project structure
+          </strong>
+
+          <p>
+            ${escapeHTML(message)}
+          </p>
+
+          <button
+            type="button"
+            id="retryTree"
+          >
+            Try Again
+          </button>
+
+        </div>
+
+      </div>
+    `;
+
+    document
+      .getElementById("retryTree")
+      ?.addEventListener(
+        "click",
+        loadTree
+      );
+  }
+
+
+  /*
+   * ------------------------------------------------------------
+   * INITIALISE
+   * ------------------------------------------------------------
+   */
+
+  loadTree();
+</script>
+
+
+<style is:global>
+  .stage-tree {
+    width: 100%;
+    color: var(--color-text);
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+
+  .stage-tree .tree-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .stage-tree .tree-header h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    color: var(--color-text);
+  }
+
+  .stage-tree .tree-header p {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .stage-tree .tree-actions {
+    display: flex;
+    gap: var(--space-sm);
+  }
+
+  .stage-tree .tree-action {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .stage-tree .tree-action:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .stage-tree .tree-list {
+    padding: 8px 0;
+  }
+
+  .stage-tree .stage-node {
+    width: 100%;
+  }
+
+  .stage-tree .stage-row {
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-base);
+    padding: var(--space-base) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+
+  .stage-tree .stage-row:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .stage-tree .expand-button {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .stage-tree .expand-button:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .stage-tree .expand-button .material-symbols-rounded {
+    font-size: 20px;
+    transition: transform 0.18s ease;
+  }
+
+  .stage-tree .expand-button[aria-expanded="true"]
+    .material-symbols-rounded {
+    transform: rotate(90deg);
+  }
+
+  .stage-tree .expand-placeholder {
+    width: 28px;
+    flex: 0 0 28px;
+  }
+
+  .stage-tree .stage-icon,
+  .stage-tree .activity-icon {
+    font-family: "Material Symbols Rounded";
+    font-size: 20px;
+    color: var(--color-primary);
+    flex: 0 0 auto;
+  }
+
+  .stage-tree .stage-main {
+    min-width: 180px;
+    flex: 1;
+  }
+
+  .stage-tree .stage-title-row,
+  .stage-tree .item-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .stage-tree .stage-name,
+  .stage-tree .item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stage-tree .stage-code,
+  .stage-tree .item-code {
+    display: inline-flex;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .stage-tree .stage-meta,
+  .stage-tree .item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .stage-tree .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+  }
+
+  .stage-tree .status-in-progress {
+    background: #ede9fe;
+    color: #6d28d9;
+  }
+
+  .stage-tree .status-completed {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .stage-tree .status-delayed {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .stage-tree .status-on-hold {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .stage-tree .status-cancelled {
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+  }
+
+  .stage-tree .status-planned {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  .stage-tree .status-not-started {
+    background: #f3f4f6;
+    color: var(--color-text-secondary);
+  }
+
+  .stage-tree .stage-progress,
+  .stage-tree .progress-text {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 600;
+  }
+
+  .stage-tree .stage-progress-container {
+    width: 150px;
+    flex: 0 0 150px;
+  }
+
+  .stage-tree .progress-track {
+    width: 100%;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--color-border);
+    overflow: hidden;
+  }
+
+  .stage-tree .progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-primary);
+    transition: width 0.25s ease;
+  }
+
+  .stage-tree .stage-menu-button {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .stage-tree .stage-menu-button:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+  }
+
+  /*
+   * Children
+   */
+
+  .stage-tree .stage-children {
+    display: none;
+    margin-left: 26px;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .stage-tree .stage-children.is-open {
+    display: block;
+  }
+
+  .stage-tree .stage-children .stage-row {
+    padding-left: 16px;
+  }
+
+  /*
+   * Activities
+   */
+
+  .stage-tree .activities-container {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .stage-tree .activity-item {
+    cursor: pointer;
+  }
+
+  .stage-tree .activity-indent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 7px 14px 7px 22px;
+  }
+
+  .stage-tree .tree-branch {
+    color: var(--color-text-muted);
+    font-size: 15px;
+  }
+
+  .stage-tree .activity-icon {
+    font-size: 17px;
+    color: var(--color-text-muted);
+  }
+
+  .stage-tree .item-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stage-tree .item-progress {
+    width: 100px;
+    flex: 0 0 100px;
+  }
+
+  .stage-tree .activity-item:hover {
+    background: var(--color-surface-hover);
+  }
+
+  /*
+   * Loading
+   */
+
+  .stage-tree .tree-loading {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .stage-tree .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--color-border);
+    border-top-color: var(
+      --color-primary,
+      #0056b8
+    );
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /*
+   * Empty
+   */
+
+  .stage-tree .empty-state {
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+  }
+
+  .stage-tree .empty-state
+    .material-symbols-rounded {
+    font-size: 40px;
+    color: var(--color-text-muted);
+  }
+
+  .stage-tree .empty-state h3 {
+    margin: 12px 0 5px;
+    font-size: 16px;
+  }
+
+  .stage-tree .empty-state p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  /*
+   * Error
+   */
+
+  .stage-tree .tree-error {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 30px;
+    color: var(--color-error);
+  }
+
+  .stage-tree .tree-error
+    > .material-symbols-rounded {
+    font-size: 32px;
+  }
+
+  .stage-tree .tree-error strong {
+    display: block;
+    font-size: 14px;
+  }
+
+  .stage-tree .tree-error p {
+    margin: 5px 0 12px;
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .stage-tree .tree-error button {
+    border: 0;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    font-size: var(--text-xs);
+  }
+
+
+  /*
+   * Mobile
+   */
+
+  @media (max-width: 700px) {
+
+    .stage-tree .tree-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .stage-tree .tree-actions {
+      width: 100%;
+    }
+
+    .stage-tree .tree-action {
+      flex: 1;
+    }
+
+    .stage-tree .stage-progress-container {
+      display: none;
+    }
+
+    .stage-tree .item-progress {
+      display: none;
+    }
+
+    .stage-tree .stage-row {
+      padding: 9px 10px;
+    }
+
+    .stage-tree .stage-children {
+      margin-left: 18px;
+    }
+
+    .stage-tree .stage-main {
+      min-width: 0;
+    }
+
+    .stage-tree .stage-menu-button {
+      display: none;
+    }
+
+    .stage-tree .stage-name,
+    .stage-tree .item-name {
+      max-width: 190px;
+    }
+  }
+</style>

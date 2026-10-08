@@ -1,7 +1,12 @@
-export const API_BASE_URL = (
-  import.meta.env.PUBLIC_API_URL ||
-  "https://leachy-fleeringly-saniya.ngrok-free.dev/api"
-).replace(/\/+$/, "");
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL?.trim();
+
+if (!configuredApiUrl) {
+  throw new Error(
+    "PUBLIC_API_URL must point to the backend's public /api URL."
+  );
+}
+
+export const API_BASE_URL = configuredApiUrl.replace(/\/+$/, "");
 
 export function withBase(path = "/") {
   const base = import.meta.env.BASE_URL || "/";

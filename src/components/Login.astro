@@ -723,6 +723,7 @@ const {
 
 </style>
 <script type="module">
+  import { API_BASE_URL } from "../lib/config.js";
 
   /*
    * --------------------------------------------------
@@ -730,8 +731,7 @@ const {
    * --------------------------------------------------
    */
 
-  const API_URL =
-    `${(import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api").replace(/\/+$/, "")}/auth/login`;
+  const API_URL = `${API_BASE_URL}/auth/login`;
 
   const DASHBOARD_URL =
     import.meta.env.BASE_URL || "/";
@@ -849,7 +849,8 @@ const {
 
                 headers: {
                   "Content-Type":
-                    "application/json"
+                    "application/json",
+                  "ngrok-skip-browser-warning": "true"
                 },
 
                 body: JSON.stringify({

@@ -30,12 +30,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check backend URL configuration
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+        run: |
+          if [ -z "$PUBLIC_API_URL" ]; then
+            echo "::error::Set the PUBLIC_API_URL repository Actions variable to the public backend URL ending in /api."
+            exit 1
+          fi
+
       - name: Build Astro site
         env:
           GITHUB_ACTIONS: true
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-          PUBLIC_API_URL: https://leachy-fleeringly-saniya.ngrok-free.dev/api
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
         run: npm run build
 
       - name: Upload artifact

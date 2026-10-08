@@ -45,9 +45,10 @@ export function getAuthHeaders() {
     localStorage.getItem("token") ||
     sessionStorage.getItem("token");
 
-  return token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
+  return {
+    "ngrok-skip-browser-warning": "true",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
 export function logout() {

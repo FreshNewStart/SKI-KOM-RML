@@ -1,4 +1,6 @@
 ---
+import { API_BASE_URL } from "../../lib/config";
+
 const { projectId } = Astro.props;
 ---
 
@@ -693,15 +695,11 @@ const { projectId } = Astro.props;
 </section>
 
 
-<script define:vars={{ projectId }}>
+<script define:vars={{ projectId, API_BASE: API_BASE_URL }}>
 
   /* =========================================================
      CONFIGURATION
   ========================================================== */
-
-  const API_BASE =
-    (import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api").replace(/\/+$/, "");
-
 
   /* =========================================================
      STATE
@@ -985,6 +983,7 @@ const { projectId } = Astro.props;
             "Content-Type":
               "application/json",
 
+            "ngrok-skip-browser-warning": "true",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(options.headers || {})
           }

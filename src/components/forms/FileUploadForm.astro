@@ -3,6 +3,8 @@ interface Props {
   projectId: string;
 }
 
+import { API_BASE_URL } from "../../lib/config";
+
 const { projectId } = Astro.props;
 ---
 
@@ -311,8 +313,7 @@ const { projectId } = Astro.props;
   </form>
 </div>
 
-<script define:vars={{ projectId }}>
-  const API_BASE = (import.meta.env.PUBLIC_API_URL || "https://leachy-fleeringly-saniya.ngrok-free.dev/api").replace(/\/+$/, "");
+<script define:vars={{ projectId, API_BASE: API_BASE_URL }}>
 
   const form = document.getElementById("fileUploadForm");
   const fileInput = document.getElementById("fileInput");
@@ -393,7 +394,10 @@ const { projectId } = Astro.props;
     sessionStorage.getItem("token");
 
   const response = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: {
+      "ngrok-skip-browser-warning": "true",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
 
   const result = await response.json();
@@ -770,6 +774,15 @@ const { projectId } = Astro.props;
       const xhr = new XMLHttpRequest();
 
       xhr.open("POST", url);
+      xhr.setRequestHeader("ngrok-skip-browser-warning", "true");
+
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
 
       xhr.upload.addEventListener("progress", (event) => {
         if (!event.lengthComputable) return;
@@ -867,7 +880,7 @@ const { projectId } = Astro.props;
         .map((tag) => tag.trim())
         .filter(Boolean);
 
-      tags.forEach((tag) => data.append("tags[]", tag));
+      data.append("tags", JSON.stringify(tags));
 
       data.append(
         "locationDescription",

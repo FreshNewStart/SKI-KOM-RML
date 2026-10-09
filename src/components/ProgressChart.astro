@@ -38,6 +38,9 @@ const { projectId } = Astro.props;
   const chartElement =
     document.querySelector("#stageTimelineChart");
 
+  let timelineChart;
+  let timelineReloadTimer;
+
 
   if (!chartElement) {
 
@@ -258,27 +261,6 @@ const { projectId } = Astro.props;
         "📅 Combined timeline data:",
         timelineData
       );
-
-
-      /*
-       * ------------------------------------------------
-       * PREVENT DUPLICATE CHART
-       * ------------------------------------------------
-       */
-
-      if (
-        chartElement.querySelector(
-          ".apexcharts-canvas"
-        )
-      ) {
-
-        console.log(
-          "Chart already exists."
-        );
-
-        return;
-
-      }
 
 
       /*
@@ -857,14 +839,9 @@ const { projectId } = Astro.props;
        * ------------------------------------------------
        */
 
-      const chart =
-        new ApexCharts(
-          chartElement,
-          options
-        );
-
-
-      chart.render();
+      timelineChart?.destroy();
+      timelineChart = new ApexCharts(chartElement, options);
+      timelineChart.render();
 
 
       console.log(
@@ -872,6 +849,13 @@ const { projectId } = Astro.props;
       );
 
     }
+
+    document.addEventListener("database-change", (event) => {
+      if (!["*", "stages"].includes(event.detail?.collection)) return;
+
+      window.clearTimeout(timelineReloadTimer);
+      timelineReloadTimer = window.setTimeout(loadStageTimeline, 250);
+    });
 
 
     /*

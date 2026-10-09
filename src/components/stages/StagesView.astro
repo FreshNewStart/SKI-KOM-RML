@@ -185,6 +185,20 @@ const {
     }
   }
 
+  let treeReloadTimer;
+  document.addEventListener("database-change", (event) => {
+    if (
+      !["*", "activities", "progressassessments", "stages"].includes(
+        event.detail?.collection
+      )
+    ) {
+      return;
+    }
+
+    window.clearTimeout(treeReloadTimer);
+    treeReloadTimer = window.setTimeout(loadTree, 250);
+  });
+
 
   /*
    * ------------------------------------------------------------
@@ -450,12 +464,10 @@ const {
 
           <button
             type="button"
-            class="stage-menu-button"
-            title="Stage options"
+            class="stage-explore-button"
+            aria-expanded="false"
           >
-            <span class="material-symbols-rounded">
-              more_vert
-            </span>
+            Explore
           </button>
 
         </div>
@@ -502,6 +514,13 @@ const {
             `
             : ""
         }
+
+        <div
+          class="stage-details"
+          hidden
+        >
+          ${escapeHTML(name)} details
+        </div>
 
       </div>
     `;
@@ -589,6 +608,32 @@ const {
    */
 
   function attachTreeEvents() {
+    /*
+     * Show or hide details for the selected stage.
+     */
+    treeContainer
+      .querySelectorAll(".stage-explore-button")
+      .forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+
+          const stageNode = button.closest(".stage-node");
+          const details = stageNode?.querySelector(
+            ":scope > .stage-details"
+          );
+
+          if (!details) {
+            return;
+          }
+
+          const expanded =
+            button.getAttribute("aria-expanded") === "true";
+
+          button.setAttribute("aria-expanded", String(!expanded));
+          details.hidden = expanded;
+        });
+      });
+
     /*
      * Expand / collapse individual stages.
      */
@@ -727,14 +772,14 @@ const {
             /*
              * Don't trigger stage selection
              * when clicking the expand button
-             * or menu button.
+             * or Explore button.
              */
             if (
               event.target.closest(
                 ".expand-button"
               ) ||
               event.target.closest(
-                ".stage-menu-button"
+                ".stage-explore-button"
               )
             ) {
               return;
@@ -1113,23 +1158,28 @@ const {
     transition: width 0.25s ease;
   }
 
-  .stage-tree .stage-menu-button {
-    width: 30px;
-    height: 30px;
-    flex: 0 0 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    background: transparent;
-    color: var(--color-text-muted);
-    border-radius: var(--radius-md);
+  .stage-tree .stage-explore-button {
+    flex: 0 0 auto;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-xs);
     cursor: pointer;
+    transition: var(--transition);
   }
 
-  .stage-tree .stage-menu-button:hover {
+  .stage-tree .stage-explore-button:hover {
     background: var(--color-surface-hover);
-    color: var(--color-text);
+  }
+
+  .stage-tree .stage-details {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
   }
 
   /*
@@ -1335,10 +1385,6 @@ const {
 
     .stage-tree .stage-main {
       min-width: 0;
-    }
-
-    .stage-tree .stage-menu-button {
-      display: none;
     }
 
     .stage-tree .stage-name,

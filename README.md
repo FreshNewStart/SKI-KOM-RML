@@ -18,6 +18,11 @@ browser, so the API must be reachable over HTTPS while the site is in use.
 `PUBLIC_API_URL` is required at build time. The same value is used by login,
 dashboard, forms, and uploads.
 
+The dashboard uses Server-Sent Events to refresh project counts, the stage
+tree, and the stage timeline when the backend detects database changes. The
+backend MongoDB must support change streams (a replica set, sharded cluster,
+or MongoDB Atlas deployment).
+
 The dashboard signs the user out after 30 minutes without keyboard, pointer,
 scroll, or touch activity. The idle timeout is shared across open tabs and is
 checked again when returning to a background tab. This clears the app's saved

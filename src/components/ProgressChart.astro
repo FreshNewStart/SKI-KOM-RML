@@ -34,12 +34,12 @@ const { projectId } = Astro.props;
   import ApexCharts from "apexcharts";
   import { API_BASE_URL } from "../lib/config.js";
   import { getAuthHeaders, logout } from "../lib/auth.js";
+  import { subscribeToDatabaseChanges } from "../lib/realtime.js";
 
   const chartElement =
     document.querySelector("#stageTimelineChart");
 
   let timelineChart;
-  let timelineReloadTimer;
 
 
   if (!chartElement) {
@@ -52,6 +52,8 @@ const { projectId } = Astro.props;
 
     const projectId =
       chartElement.dataset.projectId;
+    let timelineLoading = false;
+    let timelineReloadQueued = false;
 
 
     /*
@@ -61,6 +63,12 @@ const { projectId } = Astro.props;
      */
 
     async function loadStageTimeline() {
+      if (timelineLoading) {
+        timelineReloadQueued = true;
+        return;
+      }
+
+      timelineLoading = true;
 
       try {
 
@@ -120,6 +128,12 @@ const { projectId } = Astro.props;
           error
         );
 
+      } finally {
+        timelineLoading = false;
+        if (timelineReloadQueued) {
+          timelineReloadQueued = false;
+          void loadStageTimeline();
+        }
       }
 
     }
@@ -850,12 +864,27 @@ const { projectId } = Astro.props;
 
     }
 
-    document.addEventListener("database-change", (event) => {
-      if (!["*", "stages"].includes(event.detail?.collection)) return;
-
-      window.clearTimeout(timelineReloadTimer);
-      timelineReloadTimer = window.setTimeout(loadStageTimeline, 250);
-    });
+    const unsubscribeRealtime = subscribeToDatabaseChanges(
+      (events) => {
+        if (
+          events.some((event) =>
+            ["project", "stage"].includes(event.classification) ||
+            event.type?.startsWith("connection.")
+          )
+        ) {
+          void loadStageTimeline();
+        }
+      },
+      {
+        projectId,
+        classifications: ["project", "stage"],
+      }
+    );
+    document.addEventListener(
+      "astro:before-swap",
+      unsubscribeRealtime,
+      { once: true }
+    );
 
 
     /*

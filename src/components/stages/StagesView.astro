@@ -24,11 +24,17 @@ const {
 
 <script>
   import { getAuthHeaders as getSharedAuthHeaders } from "../../lib/auth.js";
+  import { subscribeToDatabaseChanges } from "../../lib/realtime.js";
 
   const treeContainer = document.getElementById("stageTree");
   const { projectId, apiBase } = treeContainer.dataset;
 
   let stageTree = [];
+  let treeLoaded = false;
+  let treeLoading = false;
+  let treeReloadQueued = false;
+  let selectedStageId = null;
+  let selectedActivityId = null;
 
   /*
    * ------------------------------------------------------------
@@ -151,16 +157,19 @@ const {
 
 
   async function loadTree() {
+    if (treeLoading) {
+      treeReloadQueued = true;
+      return;
+    }
+
+    treeLoading = true;
+    const viewState = captureTreeState();
+
     try {
-      showLoading();
+      if (!treeLoaded) showLoading();
 
       const topLevelStages =
         await getTopLevelStages();
-
-      console.log(
-        "Top-level stages:",
-        topLevelStages
-      );
 
       stageTree = await Promise.all(
         topLevelStages.map((stage) =>
@@ -168,12 +177,8 @@ const {
         )
       );
 
-      console.log(
-        "Complete stage tree:",
-        stageTree
-      );
-
-      renderTree();
+      treeLoaded = true;
+      renderTree(viewState);
 
     } catch (error) {
       console.error(
@@ -181,23 +186,37 @@ const {
         error
       );
 
-      showError(error.message);
+      if (!treeLoaded) showError(error.message);
+    } finally {
+      treeLoading = false;
+      if (treeReloadQueued) {
+        treeReloadQueued = false;
+        void loadTree();
+      }
     }
   }
 
-  let treeReloadTimer;
-  document.addEventListener("database-change", (event) => {
-    if (
-      !["*", "activities", "progressassessments", "stages"].includes(
-        event.detail?.collection
-      )
-    ) {
-      return;
+  const unsubscribeRealtime = subscribeToDatabaseChanges(
+    (events) => {
+      if (
+        events.some((event) =>
+          ["stage", "activity", "progress"].includes(event.classification) ||
+          event.type?.startsWith("connection.")
+        )
+      ) {
+        void loadTree();
+      }
+    },
+    {
+      projectId,
+      classifications: ["stage", "activity", "progress"],
     }
-
-    window.clearTimeout(treeReloadTimer);
-    treeReloadTimer = window.setTimeout(loadTree, 250);
-  });
+  );
+  document.addEventListener(
+    "astro:before-swap",
+    unsubscribeRealtime,
+    { once: true }
+  );
 
 
   /*
@@ -533,7 +552,34 @@ const {
    * ------------------------------------------------------------
    */
 
-  function renderTree() {
+  function captureTreeState() {
+    const expanded = new Set();
+    const detailsExpanded = new Set();
+
+    treeContainer.querySelectorAll(".stage-node").forEach((node) => {
+      const stageId = node.dataset.stageId;
+      const children = node.querySelector(":scope > .stage-children");
+      const expandButton = node.querySelector(":scope > .stage-row .expand-button");
+      const detailsButton = node.querySelector(
+        ":scope > .stage-row .stage-explore-button"
+      );
+
+      if (
+        children?.classList.contains("is-open") ||
+        expandButton?.getAttribute("aria-expanded") === "true"
+      ) {
+        expanded.add(stageId);
+      }
+      if (detailsButton?.getAttribute("aria-expanded") === "true") {
+        detailsExpanded.add(stageId);
+      }
+    });
+
+    return { expanded, detailsExpanded };
+  }
+
+
+  function renderTree(viewState = { expanded: new Set(), detailsExpanded: new Set() }) {
     if (!stageTree.length) {
       treeContainer.innerHTML = `
         <div class="empty-state">
@@ -598,6 +644,54 @@ const {
     `;
 
     attachTreeEvents();
+    restoreTreeState(viewState);
+
+    if (
+      selectedStageId &&
+      treeContainer.querySelector(
+        `.stage-node[data-stage-id="${CSS.escape(selectedStageId)}"]`
+      )
+    ) {
+      treeContainer.dispatchEvent(
+        new CustomEvent("stage-selected", {
+          bubbles: true,
+          detail: { stageId: selectedStageId },
+        })
+      );
+    }
+    if (
+      selectedActivityId &&
+      treeContainer.querySelector(
+        `.activity-item[data-id="${CSS.escape(selectedActivityId)}"]`
+      )
+    ) {
+      treeContainer.dispatchEvent(
+        new CustomEvent("activity-selected", {
+          bubbles: true,
+          detail: { activityId: selectedActivityId },
+        })
+      );
+    }
+  }
+
+
+  function restoreTreeState(viewState) {
+    treeContainer.querySelectorAll(".stage-node").forEach((node) => {
+      const stageId = node.dataset.stageId;
+      const expanded = viewState.expanded.has(stageId);
+      const children = node.querySelector(":scope > .stage-children");
+      const expandButton = node.querySelector(":scope > .stage-row .expand-button");
+      const detailsButton = node.querySelector(
+        ":scope > .stage-row .stage-explore-button"
+      );
+      const details = node.querySelector(":scope > .stage-details");
+      const detailsOpen = viewState.detailsExpanded.has(stageId);
+
+      children?.classList.toggle("is-open", expanded);
+      expandButton?.setAttribute("aria-expanded", String(expanded));
+      detailsButton?.setAttribute("aria-expanded", String(detailsOpen));
+      if (details) details.hidden = !detailsOpen;
+    });
   }
 
 
@@ -791,10 +885,8 @@ const {
             const stageId =
               stageNode?.dataset.stageId;
 
-            console.log(
-              "Stage selected:",
-              stageId
-            );
+            selectedStageId = stageId || null;
+            selectedActivityId = null;
 
             treeContainer.dispatchEvent(
               new CustomEvent(
@@ -830,10 +922,8 @@ const {
             const activityId =
               item.dataset.id;
 
-            console.log(
-              "Activity selected:",
-              activityId
-            );
+            selectedActivityId = activityId || null;
+            selectedStageId = null;
 
             treeContainer.dispatchEvent(
               new CustomEvent(

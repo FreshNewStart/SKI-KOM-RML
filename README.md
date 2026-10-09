@@ -18,10 +18,24 @@ browser, so the API must be reachable over HTTPS while the site is in use.
 `PUBLIC_API_URL` is required at build time. The same value is used by login,
 dashboard, forms, and uploads.
 
-The dashboard uses Server-Sent Events to refresh project counts, the stage
-tree, and the stage timeline when the backend detects database changes. The
-backend MongoDB must support change streams (a replica set, sharded cluster,
-or MongoDB Atlas deployment).
+The dashboard uses one shared Server-Sent Events connection, authenticated
+with a short-lived, single-use ticket obtained using the saved bearer token.
+The backend sends only project-scoped invalidation events; REST remains the
+source of truth. Project counts refresh for project, stage, activity, and
+progress changes. The hierarchical stage/activity tree refreshes for stage,
+activity, and progress changes while preserving expanded nodes and the current
+selection. The stage timeline refreshes for project and stage changes. Bursts
+are coalesced, and a reconnect triggers a scoped refetch to recover changes
+missed while offline.
+
+The real-time API refuses stream tickets for accounts without authorised
+project associations. The backend checks that the signed-in account is active;
+Admin can subscribe to all projects, while other roles are scoped to projects
+whose owner or `organisations` array includes the account's active
+organisation.
+MongoDB must support Change Streams (a replica set, sharded cluster, or Atlas
+deployment). See the sibling backend README for MongoDB pre-image setup,
+permissions, limitations, and local/ngrok verification steps.
 
 The dashboard signs the user out after 30 minutes without keyboard, pointer,
 scroll, or touch activity. The idle timeout is shared across open tabs and is

@@ -1556,7 +1556,10 @@ const {
     startIdleLogout,
   } from "../lib/auth.js";
   import { buildApiUrl, withBase } from "../lib/config.js";
-  import { connectToDatabaseEvents } from "../lib/realtime.js";
+  import {
+    connectToDatabaseEvents,
+    subscribeToDatabaseChanges,
+  } from "../lib/realtime.js";
 
   const APP_BASE = import.meta.env.BASE_URL || "/";
 
@@ -1595,7 +1598,16 @@ const {
   // AUTHENTICATION CHECK
   // ===================================
 
+  let overviewLoading = false;
+  let overviewReloadQueued = false;
+
   async function loadDashboardOverview() {
+    if (overviewLoading) {
+      overviewReloadQueued = true;
+      return;
+    }
+
+    overviewLoading = true;
     try {
       if (!projectId) {
         throw new Error("Dashboard project ID is missing.");
@@ -1649,6 +1661,12 @@ const {
       }
     } catch (error) {
       console.error("Dashboard overview unavailable:", error);
+    } finally {
+      overviewLoading = false;
+      if (overviewReloadQueued) {
+        overviewReloadQueued = false;
+        void loadDashboardOverview();
+      }
     }
   }
 
@@ -1849,18 +1867,36 @@ const {
       apiBaseUrl: buildApiUrl(),
       getAuthHeaders,
       onUnauthorized: logout,
-      onChange: (change) => {
-        document.dispatchEvent(
-          new CustomEvent("database-change", { detail: change })
-        );
+    });
+    const unsubscribeRealtime = subscribeToDatabaseChanges(
+      (events) => {
+        if (
+          events.some((event) =>
+            [
+              "project",
+              "stage",
+              "activity",
+              "progress",
+            ].includes(event.classification) ||
+            event.type?.startsWith("connection.")
+          )
+        ) {
+          void loadDashboardOverview();
+        }
       },
-    });
-    window.addEventListener("pagehide", stopDatabaseEvents, { once: true });
-    document.addEventListener("database-change", (event) => {
-      if (["*", "activities", "stages"].includes(event.detail?.collection)) {
-        loadDashboardOverview();
+      {
+        projectId,
+        classifications: ["project", "stage", "activity", "progress"],
       }
-    });
+    );
+    document.addEventListener(
+      "astro:before-swap",
+      () => {
+        unsubscribeRealtime();
+        stopDatabaseEvents();
+      },
+      { once: true }
+    );
     loadDashboardOverview();
 
   }

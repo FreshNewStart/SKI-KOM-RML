@@ -16,25 +16,92 @@ const {
   data-project-id={projectId}
   data-api-base={apiBase}
 >
-  <div class="tree-loading">
-    <span class="spinner"></span>
-    <span>Loading project structure...</span>
-  </div>
+  <section class="item-detail" aria-live="polite" aria-atomic="true">
+    <p class="item-detail-label">Focused item</p>
+    <h2 id="focusedItemName">Project Structure</h2>
+    <p id="focusedItemNote">
+      Select a stage, substage, or activity to view its details.
+    </p>
+  </section>
+
+  <section
+    class="tree-section"
+    id="treeSection"
+    aria-label="Project stages and activities"
+  >
+    <div class="tree-content" id="treeContent">
+      <div class="tree-loading">
+        <span class="spinner"></span>
+        <span>Loading project structure...</span>
+      </div>
+    </div>
+  </section>
 </div>
 
 <script>
   import { getAuthHeaders as getSharedAuthHeaders } from "../../lib/auth.js";
   import { subscribeToDatabaseChanges } from "../../lib/realtime.js";
 
+  /**
+   * @typedef {Object} TreeItem
+   * @property {string|number} [_id]
+   * @property {string|number} [id]
+   * @property {string} [name]
+   * @property {string} [code]
+   * @property {string} [activityCode]
+   * @property {string} [status]
+   * @property {number|string} [progress]
+   * @property {TreeItem[]} [substages]
+   * @property {TreeItem[]} [activities]
+   */
+  /**
+   * @typedef {Object} FocusedItem
+   * @property {"stage"|"substage"|"activity"} type
+   * @property {string|null} id
+   * @property {string} name
+   */
+  /**
+   * @typedef {Object} SearchResult
+   * @property {"stage"|"substage"|"activity"} type
+   * @property {string} id
+   * @property {string} name
+   * @property {string} code
+   * @property {string} status
+   * @property {number} progress
+   * @property {string} parentPath
+   * @property {string} key
+   * @property {TreeItem} item
+   */
+
   const treeContainer = document.getElementById("stageTree");
+  if (!treeContainer) {
+    throw new Error("The project stage tree container was not found.");
+  }
+
   const { projectId, apiBase } = treeContainer.dataset;
 
+  /** @type {TreeItem[]} */
   let stageTree = [];
   let treeLoaded = false;
   let treeLoading = false;
   let treeReloadQueued = false;
-  let selectedStageId = null;
-  let selectedActivityId = null;
+  let treeLoadError = null;
+  let searchQuery = "";
+  const expandedSearchResults = new Set();
+  /** @type {FocusedItem|null} */
+  let focusedItem = null;
+  const treeSection = treeContainer.querySelector(".tree-section");
+  const treeContent = treeContainer.querySelector(".tree-content");
+  const focusedItemName = treeContainer.querySelector("#focusedItemName");
+  const focusedItemNote = treeContainer.querySelector("#focusedItemNote");
+  if (
+    !(treeSection instanceof HTMLElement) ||
+    !(treeContent instanceof HTMLElement) ||
+    !(focusedItemName instanceof HTMLElement) ||
+    !(focusedItemNote instanceof HTMLElement)
+  ) {
+    throw new Error("The project stage tree is missing a required display section.");
+  }
 
   /*
    * ------------------------------------------------------------
@@ -77,16 +144,34 @@ const {
   }
 
 
+  /**
+   * @param {unknown} value
+   * @returns {value is TreeItem}
+   */
+  function isTreeItem(value) {
+    return typeof value === "object" && value !== null;
+  }
+
+
+  /**
+   * @param {unknown} response
+   * @returns {TreeItem[]}
+   */
   function extractData(response) {
+    let data = [];
+
     if (Array.isArray(response)) {
-      return response;
+      data = response;
+    } else if (
+      typeof response === "object" &&
+      response !== null &&
+      "data" in response &&
+      Array.isArray(response.data)
+    ) {
+      data = response.data;
     }
 
-    if (Array.isArray(response?.data)) {
-      return response.data;
-    }
-
-    return [];
+    return data.filter(isTreeItem);
   }
 
 
@@ -96,6 +181,7 @@ const {
    * ------------------------------------------------------------
    */
 
+  /** @returns {Promise<TreeItem[]>} */
   async function getTopLevelStages() {
     const response = await fetchJSON(
       `${apiBase}/stages/project/${projectId}`
@@ -105,6 +191,10 @@ const {
   }
 
 
+  /**
+   * @param {string} stageId
+   * @returns {Promise<TreeItem[]>}
+   */
   async function getSubstages(stageId) {
     const response = await fetchJSON(
       `${apiBase}/stages/${stageId}/substages`
@@ -114,6 +204,10 @@ const {
   }
 
 
+  /**
+   * @param {string} stageId
+   * @returns {Promise<TreeItem[]>}
+   */
   async function getActivities(stageId) {
     const response = await fetchJSON(
       `${apiBase}/activities/stage/${stageId}`
@@ -129,8 +223,19 @@ const {
    * ------------------------------------------------------------
    */
 
+  /**
+   * @param {TreeItem} stage
+   * @returns {Promise<TreeItem>}
+   */
   async function buildStage(stage) {
     const stageId = stage._id || stage.id;
+    if (!stageId) {
+      return {
+        ...stage,
+        activities: [],
+        substages: [],
+      };
+    }
 
     /*
      * Load substages and activities at the same time.
@@ -165,6 +270,7 @@ const {
 
     treeLoading = true;
     const viewState = captureTreeState();
+    treeLoadError = null;
 
     try {
       if (!treeLoaded) showLoading();
@@ -178,6 +284,7 @@ const {
         )
       );
 
+      treeLoadError = null;
       treeLoaded = true;
       renderTree(viewState);
 
@@ -187,7 +294,8 @@ const {
         error
       );
 
-      if (!treeLoaded) showError(error.message);
+      treeLoadError = error instanceof Error ? error.message : String(error);
+      if (!treeLoaded) showError(treeLoadError);
     } finally {
       treeLoading = false;
       if (treeReloadQueued) {
@@ -226,11 +334,17 @@ const {
    * ------------------------------------------------------------
    */
 
+  /**
+   * @param {TreeItem|null|undefined} item
+   */
   function getId(item) {
-    return item?._id || item?.id || "";
+    return item ? String(item._id ?? item.id ?? "") : "";
   }
 
 
+  /**
+   * @param {unknown} value
+   */
   function escapeHTML(value) {
     if (value === null || value === undefined) {
       return "";
@@ -245,18 +359,25 @@ const {
   }
 
 
+  /**
+   * @param {string} status
+   */
   function getStatusClass(status) {
     if (!status) return "status-default";
 
     return (
       "status-" +
-      status
+      String(status)
         .toLowerCase()
         .replaceAll(" ", "-")
+        .replace(/[^a-z0-9-]/g, "")
     );
   }
 
 
+  /**
+   * @param {unknown} value
+   */
   function getProgress(value) {
     const progress = Number(value);
 
@@ -277,6 +398,9 @@ const {
    * ------------------------------------------------------------
    */
 
+  /**
+   * @param {TreeItem} activity
+   */
   function renderActivity(activity) {
     const activityId = getId(activity);
 
@@ -299,6 +423,9 @@ const {
         class="tree-item activity-item"
         data-type="activity"
         data-id="${escapeHTML(activityId)}"
+        role="treeitem"
+        tabindex="0"
+        aria-selected="false"
       >
 
         <div class="tree-indent activity-indent">
@@ -368,7 +495,12 @@ const {
    * ------------------------------------------------------------
    */
 
-  function renderStage(stage, level = 0) {
+  /**
+   * @param {TreeItem} stage
+   * @param {number} [level]
+   * @param {boolean} [isSubstage]
+   */
+  function renderStage(stage, level = 0, isSubstage = false) {
     const stageId = getId(stage);
 
     const name =
@@ -404,9 +536,16 @@ const {
         class="stage-node"
         data-stage-id="${escapeHTML(stageId)}"
         data-level="${level}"
+        data-type="${isSubstage ? "substage" : "stage"}"
       >
 
-        <div class="stage-row">
+        <div
+          class="stage-row"
+          data-id="${escapeHTML(stageId)}"
+          role="treeitem"
+          tabindex="0"
+          aria-selected="false"
+        >
 
           ${
             hasChildren
@@ -415,6 +554,7 @@ const {
                   type="button"
                   class="expand-button"
                   aria-expanded="false"
+                  aria-label="Expand ${escapeHTML(name)}"
                   title="Expand"
                 >
                   <span class="material-symbols-rounded">
@@ -482,21 +622,13 @@ const {
 
           </div>
 
-          <button
-            type="button"
-            class="stage-explore-button"
-            aria-expanded="false"
-          >
-            Explore
-          </button>
-
         </div>
 
 
         ${
           hasChildren
             ? `
-              <div class="stage-children">
+              <div class="stage-children" role="group">
 
                 ${
                   substages.length
@@ -504,7 +636,8 @@ const {
                         .map((substage) =>
                           renderStage(
                             substage,
-                            level + 1
+                            level + 1,
+                            true
                           )
                         )
                         .join("")
@@ -514,7 +647,7 @@ const {
                 ${
                   activities.length
                     ? `
-                      <div class="activities-container">
+                      <div class="activities-container" role="group">
 
                         ${activities
                           .map(
@@ -535,13 +668,6 @@ const {
             : ""
         }
 
-        <div
-          class="stage-details"
-          hidden
-        >
-          ${escapeHTML(name)} details
-        </div>
-
       </div>
     `;
   }
@@ -555,144 +681,580 @@ const {
 
   function captureTreeState() {
     const expanded = new Set();
-    const detailsExpanded = new Set();
 
     treeContainer.querySelectorAll(".stage-node").forEach((node) => {
-      const stageId = node.dataset.stageId;
+      const stageId = node.getAttribute("data-stage-id");
       const children = node.querySelector(":scope > .stage-children");
       const expandButton = node.querySelector(":scope > .stage-row .expand-button");
-      const detailsButton = node.querySelector(
-        ":scope > .stage-row .stage-explore-button"
-      );
 
       if (
-        children?.classList.contains("is-open") ||
-        expandButton?.getAttribute("aria-expanded") === "true"
+        stageId &&
+        (children?.classList.contains("is-open") ||
+          expandButton?.getAttribute("aria-expanded") === "true")
       ) {
         expanded.add(stageId);
       }
-      if (detailsButton?.getAttribute("aria-expanded") === "true") {
-        detailsExpanded.add(stageId);
-      }
     });
 
-    return { expanded, detailsExpanded };
+    return { expanded };
   }
 
 
-  function renderTree(viewState = { expanded: new Set(), detailsExpanded: new Set() }) {
-    if (!stageTree.length) {
-      treeContainer.innerHTML = `
-        <div class="empty-state">
+  function renderSearchBar() {
+    return `
+      <div class="tree-search">
+        <span class="material-symbols-rounded tree-search-icon" aria-hidden="true">
+          search
+        </span>
+        <label class="visually-hidden" for="stageSearch">
+          Search stages, substages, and activities
+        </label>
+        <input
+          id="stageSearch"
+          class="tree-search-input"
+          type="search"
+          value="${escapeHTML(searchQuery)}"
+          placeholder="Search stages, substages, and activities..."
+          autocomplete="off"
+          aria-controls="stageSearchResults"
+        />
+        <button
+          type="button"
+          id="clearStageSearch"
+          class="tree-search-clear"
+          aria-label="Clear search"
+          ${searchQuery ? "" : "hidden"}
+        >
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+      </div>
+    `;
+  }
 
-          <span class="material-symbols-rounded">
-            account_tree
-          </span>
+  /**
+   * @returns {SearchResult[]}
+   */
+  function getSearchResults() {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return [];
 
-          <h3>No stages found</h3>
+    const terms = query.split(/\s+/);
+    /** @type {SearchResult[]} */
+    const results = [];
+    const seen = new Set();
+    const seenWithoutId = new WeakSet();
 
-          <p>
-            This project does not have any
-            top-level stages yet.
-          </p>
+    /**
+     * @param {TreeItem} item
+     * @param {"stage"|"substage"|"activity"} type
+     * @param {string} parentPath
+     * @param {string} code
+     */
+    function addResult(item, type, parentPath, code) {
+      const id = getId(item);
+      const uniqueKey = id ? `${type}:${id}` : null;
+      if (uniqueKey && seen.has(uniqueKey)) return;
+      if (!uniqueKey && seenWithoutId.has(item)) return;
 
+      const name = String(
+        item.name ||
+          (type === "activity" ? "Unnamed Activity" : "Unnamed Stage")
+      );
+      const searchableText = [name, code]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase();
+
+      if (!terms.every((term) => searchableText.includes(term))) return;
+      if (uniqueKey) seen.add(uniqueKey);
+      else seenWithoutId.add(item);
+
+      results.push(createSearchResult(item, type, parentPath, code));
+    }
+
+    /**
+     * @param {TreeItem} stage
+     * @param {string[]} ancestors
+     * @param {boolean} isSubstage
+     */
+    function visitStage(stage, ancestors, isSubstage) {
+      const type = isSubstage ? "substage" : "stage";
+      const name = String(stage.name || "Unnamed Stage");
+      const stagePath = [...ancestors, name];
+      addResult(stage, type, ancestors.join(" › "), String(stage.code || ""));
+
+      for (const activity of stage.activities || []) {
+        addResult(
+          activity,
+          "activity",
+          stagePath.join(" › "),
+          String(activity.activityCode || activity.code || "")
+        );
+      }
+
+      for (const substage of stage.substages || []) {
+        visitStage(substage, stagePath, true);
+      }
+    }
+
+    for (const stage of stageTree) {
+      visitStage(stage, [], false);
+    }
+
+    return results;
+  }
+
+  /**
+   * @param {TreeItem} item
+   * @param {"stage"|"substage"|"activity"} type
+   * @param {string} parentPath
+   * @param {string} code
+   * @returns {SearchResult}
+   */
+  function createSearchResult(item, type, parentPath, code) {
+    const id = getId(item);
+    const name = String(
+      item.name ||
+        (type === "activity" ? "Unnamed Activity" : "Unnamed Stage")
+    );
+
+    return {
+      type,
+      id,
+      name,
+      code,
+      status: String(item.status || "Not Started"),
+      progress: getProgress(item.progress),
+      parentPath,
+      key: id
+        ? `${type}:${id}`
+        : `${type}:${parentPath}:${name}`,
+      item,
+    };
+  }
+
+
+  /**
+   * @param {SearchResult} result
+   * @returns {SearchResult[]}
+   */
+  function getSearchResultChildren(result) {
+    if (result.type === "activity") return [];
+
+    const childPath = [result.parentPath, result.name]
+      .filter(Boolean)
+      .join(" › ");
+    const substages = (result.item.substages || []).map((substage) =>
+      createSearchResult(
+        substage,
+        "substage",
+        childPath,
+        String(substage.code || "")
+      )
+    );
+    const activities = (result.item.activities || []).map((activity) =>
+      createSearchResult(
+        activity,
+        "activity",
+        childPath,
+        String(activity.activityCode || activity.code || "")
+      )
+    );
+
+    return [...substages, ...activities];
+  }
+
+
+  /**
+   * @param {SearchResult} result
+   * @returns {string}
+   */
+  function renderSearchResult(result) {
+    const children = getSearchResultChildren(result);
+    const isExpanded = expandedSearchResults.has(result.key);
+    const isFocused =
+      focusedItem?.type === result.type && focusedItem.id === result.id;
+
+    return `
+      <div class="search-result-item">
+        <div class="search-result-row">
+          <button
+            type="button"
+            class="search-result${isFocused ? " is-focused" : ""}"
+            data-type="${result.type}"
+            data-id="${escapeHTML(result.id)}"
+            aria-current="${isFocused ? "true" : "false"}"
+          >
+            <span class="search-result-main">
+              <span class="search-result-name">${escapeHTML(result.name)}</span>
+              <span class="search-result-type">${result.type === "stage" ? "Stage" : result.type === "substage" ? "Substage" : "Activity"}</span>
+              ${
+                result.parentPath
+                  ? `<span class="search-result-path">${escapeHTML(result.parentPath)}</span>`
+                  : ""
+              }
+              ${
+                result.code
+                  ? `<span class="item-code">${escapeHTML(result.code)}</span>`
+                  : ""
+              }
+            </span>
+            <span class="search-result-meta">
+              <span class="status-badge ${getStatusClass(result.status)}">${escapeHTML(result.status)}</span>
+              <span class="progress-text">${result.progress}%</span>
+            </span>
+          </button>
+          ${
+            children.length
+              ? `
+                <button
+                  type="button"
+                  class="search-result-expand"
+                  data-result-key="${escapeHTML(result.key)}"
+                  aria-expanded="${isExpanded}"
+                  aria-label="${isExpanded ? "Collapse" : "Expand"} ${escapeHTML(result.name)} children"
+                  title="${isExpanded ? "Collapse" : "Expand"}"
+                >
+                  <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+                </button>
+              `
+              : ""
+          }
         </div>
-      `;
+        ${
+          children.length && isExpanded
+            ? `
+              <div class="search-result-children" role="group">
+                ${children.map(renderSearchResult).join("")}
+              </div>
+            `
+            : ""
+        }
+      </div>
+    `;
+  }
 
+
+  function renderSearchResults() {
+    const resultsContainer = treeContent.querySelector("#stageSearchResults");
+    if (!(resultsContainer instanceof HTMLElement)) return;
+
+    if (!searchQuery.trim()) {
+      resultsContainer.replaceChildren();
       return;
     }
 
-    treeContainer.innerHTML = `
-      <div class="tree-header">
+    if (!treeLoaded) {
+      resultsContainer.innerHTML = treeLoadError
+        ? `
+          <div class="search-state">
+            <p>Unable to load project structure: ${escapeHTML(treeLoadError)}</p>
+            <button type="button" id="retryTree">Try Again</button>
+          </div>
+        `
+        : `<p class="search-state">Loading project structure...</p>`;
+      return;
+    }
 
-        <div>
-          <h3>Project Structure</h3>
+    const results = getSearchResults();
+    if (!results.length) {
+      resultsContainer.innerHTML = `
+        <p class="search-state">
+          No stages, substages, or activities match your search.
+        </p>
+      `;
+      return;
+    }
 
-          <p>
-            Stages, substages and activities
-          </p>
-        </div>
+    resultsContainer.innerHTML = results.map(renderSearchResult).join("");
+  }
 
-        <div class="tree-actions">
 
-          <button
-            type="button"
-            id="expandAll"
-            class="tree-action"
-          >
-            Expand All
-          </button>
+  function updateSearchView() {
+    const input = treeContent.querySelector("#stageSearch");
+    const clearButton = treeContent.querySelector("#clearStageSearch");
+    const treeList = treeContent.querySelector("#stageTreeList");
+    const results = treeContent.querySelector("#stageSearchResults");
+    const hasQuery = Boolean(searchQuery.trim());
 
-          <button
-            type="button"
-            id="collapseAll"
-            class="tree-action"
-          >
-            Collapse All
-          </button>
+    if (input instanceof HTMLInputElement && input.value !== searchQuery) {
+      input.value = searchQuery;
+    }
+    if (clearButton instanceof HTMLButtonElement) {
+      clearButton.hidden = !hasQuery;
+    }
+    if (treeList instanceof HTMLElement) treeList.hidden = hasQuery;
+    if (results instanceof HTMLElement) results.hidden = !hasQuery;
 
-        </div>
+    renderSearchResults();
+  }
 
+
+  function renderTree(viewState = { expanded: new Set() }) {
+    const treeMarkup = stageTree.length
+      ? `
+          <div class="tree-list" role="tree">
+            ${stageTree.map((stage) => renderStage(stage)).join("")}
+          </div>
+        `
+      : `
+          <div class="empty-state">
+            <span class="material-symbols-rounded">
+              account_tree
+            </span>
+            <h3>No stages found</h3>
+            <p>
+              This project does not have any
+              top-level stages yet.
+            </p>
+          </div>
+        `;
+
+    treeContent.innerHTML = `
+      ${renderSearchBar()}
+      <div
+        class="tree-scroll-area"
+        id="stageTreeList"
+        ${searchQuery.trim() ? "hidden" : ""}
+      >
+        ${treeMarkup}
       </div>
-
-      <div class="tree-list">
-        ${stageTree
-          .map((stage) =>
-            renderStage(stage)
-          )
-          .join("")}
+      <div
+        class="search-results"
+        id="stageSearchResults"
+        role="region"
+        aria-label="Search results"
+        ${searchQuery.trim() ? "" : "hidden"}
+      >
       </div>
     `;
 
-    attachTreeEvents();
     restoreTreeState(viewState);
-
-    if (
-      selectedStageId &&
-      treeContainer.querySelector(
-        `.stage-node[data-stage-id="${CSS.escape(selectedStageId)}"]`
-      )
-    ) {
-      treeContainer.dispatchEvent(
-        new CustomEvent("stage-selected", {
-          bubbles: true,
-          detail: { stageId: selectedStageId },
-        })
-      );
-    }
-    if (
-      selectedActivityId &&
-      treeContainer.querySelector(
-        `.activity-item[data-id="${CSS.escape(selectedActivityId)}"]`
-      )
-    ) {
-      treeContainer.dispatchEvent(
-        new CustomEvent("activity-selected", {
-          bubbles: true,
-          detail: { activityId: selectedActivityId },
-        })
-      );
-    }
+    restoreFocusedItem();
+    updateSearchView();
   }
 
 
   function restoreTreeState(viewState) {
     treeContainer.querySelectorAll(".stage-node").forEach((node) => {
       const stageId = node.dataset.stageId;
-      const expanded = viewState.expanded.has(stageId);
-      const children = node.querySelector(":scope > .stage-children");
-      const expandButton = node.querySelector(":scope > .stage-row .expand-button");
-      const detailsButton = node.querySelector(
-        ":scope > .stage-row .stage-explore-button"
-      );
-      const details = node.querySelector(":scope > .stage-details");
-      const detailsOpen = viewState.detailsExpanded.has(stageId);
-
-      children?.classList.toggle("is-open", expanded);
-      expandButton?.setAttribute("aria-expanded", String(expanded));
-      detailsButton?.setAttribute("aria-expanded", String(detailsOpen));
-      if (details) details.hidden = !detailsOpen;
+      const expanded = Boolean(stageId && viewState.expanded.has(stageId));
+      setStageExpanded(node, expanded);
     });
+  }
+
+
+  function updateFocusedDisplay() {
+    const itemName = focusedItem?.name || "Project Structure";
+    const notes = {
+      stage: "You are viewing the details for this stage.",
+      substage: "You are viewing the details for this substage.",
+      activity: "You are viewing the details for this activity.",
+    };
+
+    focusedItemName.textContent = itemName;
+    focusedItemNote.textContent = focusedItem
+      ? notes[focusedItem.type]
+      : "Select a stage, substage, or activity to view its details.";
+
+    treeContainer
+      .querySelectorAll(".stage-row, .activity-item")
+      .forEach((item) => {
+        item.classList.remove("is-focused");
+        item.setAttribute("aria-selected", "false");
+      });
+
+    if (!focusedItem?.id) return;
+
+    const selector =
+      focusedItem.type === "activity"
+        ? ".activity-item"
+        : ".stage-row";
+    const selectedItem = [...treeContainer.querySelectorAll(selector)].find(
+      (item) => {
+        if (item.getAttribute("data-id") !== focusedItem.id) return false;
+        return focusedItem.type === "activity"
+          ? item.getAttribute("data-type") === "activity"
+          : item.closest(".stage-node")?.getAttribute("data-type") === focusedItem.type;
+      }
+    );
+
+    selectedItem?.classList.add("is-focused");
+    selectedItem?.setAttribute("aria-selected", "true");
+  }
+
+
+  /**
+   * @param {FocusedItem|null} item
+   */
+  function dispatchFocusedEvent(item) {
+    if (!item?.id) return;
+
+    if (item.type === "activity") {
+      treeContainer.dispatchEvent(
+        new CustomEvent("activity-selected", {
+          bubbles: true,
+          detail: { activityId: item.id },
+        })
+      );
+      return;
+    }
+
+    treeContainer.dispatchEvent(
+      new CustomEvent("stage-selected", {
+        bubbles: true,
+        detail: { stageId: item.id },
+      })
+    );
+  }
+
+
+  /**
+   * @param {FocusedItem["type"]} type
+   * @param {unknown} id
+   * @param {string} name
+   */
+  function focusItem(type, id, name) {
+    focusedItem = {
+      type,
+      id: id == null || id === "" ? null : String(id),
+      name: name || (type === "activity" ? "Unnamed Activity" : "Unnamed Stage"),
+    };
+    updateFocusedDisplay();
+    dispatchFocusedEvent(focusedItem);
+  }
+
+
+  /**
+   * @returns {FocusedItem|null}
+   */
+  function findFocusedItem() {
+    if (!focusedItem?.id) return null;
+
+    /**
+     * @param {TreeItem} stage
+     * @param {boolean} isSubstage
+     * @returns {FocusedItem|null}
+     */
+    function findStage(stage, isSubstage) {
+      if (
+        focusedItem.type !== "activity" &&
+        String(getId(stage)) === focusedItem.id &&
+        (isSubstage ? "substage" : "stage") === focusedItem.type
+      ) {
+        return {
+          type: isSubstage ? "substage" : "stage",
+          id: focusedItem.id,
+          name: stage.name || "Unnamed Stage",
+        };
+      }
+
+      for (const activity of stage.activities || []) {
+        if (
+          focusedItem.type === "activity" &&
+          String(getId(activity)) === focusedItem.id
+        ) {
+          return {
+            type: "activity",
+            id: focusedItem.id,
+            name: activity.name || "Unnamed Activity",
+          };
+        }
+      }
+
+      for (const substage of stage.substages || []) {
+        const match = findStage(substage, true);
+        if (match) return match;
+      }
+
+      return null;
+    }
+
+    for (const stage of stageTree) {
+      const match = findStage(stage, false);
+      if (match) return match;
+    }
+
+    return null;
+  }
+
+
+  function restoreFocusedItem() {
+    if (!focusedItem) {
+      updateFocusedDisplay();
+      return;
+    }
+
+    const restoredItem = findFocusedItem();
+    if (!restoredItem) {
+      focusedItem = null;
+      updateFocusedDisplay();
+      return;
+    }
+
+    focusedItem = restoredItem;
+    updateFocusedDisplay();
+    dispatchFocusedEvent(focusedItem);
+  }
+
+
+  /**
+   * @param {Element|null} stageNode
+   * @param {boolean} expanded
+   */
+  function setStageExpanded(stageNode, expanded) {
+    const children = stageNode?.querySelector(":scope > .stage-children");
+    const button = stageNode?.querySelector(":scope > .stage-row .expand-button");
+    if (!children || !(button instanceof HTMLButtonElement)) return;
+
+    children.classList.toggle("is-open", expanded);
+    button.setAttribute("aria-expanded", String(expanded));
+    button.setAttribute(
+      "aria-label",
+      `${expanded ? "Collapse" : "Expand"} ${
+        stageNode.querySelector(":scope > .stage-row .stage-name")?.textContent ||
+        "stage"
+      }`
+    );
+    button.title = expanded ? "Collapse" : "Expand";
+  }
+
+
+  /**
+   * @param {HTMLElement} row
+   */
+  function selectStageRow(row) {
+    const stageNode = row.closest(".stage-node");
+    if (!stageNode) return;
+
+    const type =
+      stageNode.getAttribute("data-type") === "substage"
+        ? "substage"
+        : "stage";
+    const name =
+      row.querySelector(".stage-name")?.textContent?.trim() ||
+      "Unnamed Stage";
+
+    focusItem(type, stageNode.getAttribute("data-stage-id"), name);
+    const children = stageNode.querySelector(":scope > .stage-children");
+    if (children) {
+      const button = row.querySelector(".expand-button");
+      setStageExpanded(
+        stageNode,
+        button?.getAttribute("aria-expanded") !== "true"
+      );
+    }
+  }
+
+
+  /**
+   * @param {HTMLElement} item
+   */
+  function selectActivity(item) {
+    const name =
+      item.querySelector(".item-name")?.textContent?.trim() ||
+      "Unnamed Activity";
+    focusItem("activity", item.dataset.id, name);
   }
 
 
@@ -703,246 +1265,107 @@ const {
    */
 
   function attachTreeEvents() {
-    /*
-     * Show or hide details for the selected stage.
-     */
-    treeContainer
-      .querySelectorAll(".stage-explore-button")
-      .forEach((button) => {
-        button.addEventListener("click", (event) => {
-          event.stopPropagation();
+    treeSection.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement) || target.id !== "stageSearch") {
+        return;
+      }
 
-          const stageNode = button.closest(".stage-node");
-          const details = stageNode?.querySelector(
-            ":scope > .stage-details"
-          );
+      searchQuery = target.value;
+      updateSearchView();
+    });
 
-          if (!details) {
-            return;
-          }
+    treeSection.addEventListener("click", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) return;
 
-          const expanded =
-            button.getAttribute("aria-expanded") === "true";
+      if (target.closest("#clearStageSearch")) {
+        searchQuery = "";
+        updateSearchView();
+        const searchInput = treeContent.querySelector("#stageSearch");
+        if (searchInput instanceof HTMLInputElement) searchInput.focus();
+        return;
+      }
 
-          button.setAttribute("aria-expanded", String(!expanded));
-          details.hidden = expanded;
-        });
-      });
+      const searchResultExpand = target.closest(".search-result-expand");
+      if (searchResultExpand instanceof HTMLButtonElement) {
+        const resultKey = searchResultExpand.dataset.resultKey;
+        if (!resultKey) return;
 
-    /*
-     * Expand / collapse individual stages.
-     */
-    treeContainer
-      .querySelectorAll(".expand-button")
-      .forEach((button) => {
-
-        button.addEventListener(
-          "click",
-          (event) => {
-
-            event.stopPropagation();
-
-            const stageNode =
-              button.closest(".stage-node");
-
-            const children =
-              stageNode.querySelector(
-                ":scope > .stage-children"
-              );
-
-            if (!children) {
-              return;
-            }
-
-            const expanded =
-              button.getAttribute(
-                "aria-expanded"
-              ) === "true";
-
-            button.setAttribute(
-              "aria-expanded",
-              String(!expanded)
-            );
-
-            children.classList.toggle(
-              "is-open",
-              !expanded
-            );
-
-          }
-        );
-
-      });
-
-
-    /*
-     * Expand all.
-     */
-    const expandAll =
-      document.getElementById(
-        "expandAll"
-      );
-
-    if (expandAll) {
-      expandAll.addEventListener(
-        "click",
-        () => {
-
-          treeContainer
-            .querySelectorAll(
-              ".stage-node > .stage-children"
-            )
-            .forEach((children) => {
-              children.classList.add(
-                "is-open"
-              );
-            });
-
-          treeContainer
-            .querySelectorAll(
-              ".expand-button"
-            )
-            .forEach((button) => {
-              button.setAttribute(
-                "aria-expanded",
-                "true"
-              );
-            });
-
+        if (expandedSearchResults.has(resultKey)) {
+          expandedSearchResults.delete(resultKey);
+        } else {
+          expandedSearchResults.add(resultKey);
         }
-      );
-    }
 
+        renderSearchResults();
+        const updatedButton = Array.from(
+          treeContent.querySelectorAll(".search-result-expand")
+        ).find(
+          (button) =>
+            button instanceof HTMLButtonElement &&
+            button.dataset.resultKey === resultKey
+        );
+        if (updatedButton instanceof HTMLButtonElement) updatedButton.focus();
+        return;
+      }
 
-    /*
-     * Collapse all.
-     */
-    const collapseAll =
-      document.getElementById(
-        "collapseAll"
-      );
-
-    if (collapseAll) {
-      collapseAll.addEventListener(
-        "click",
-        () => {
-
-          treeContainer
-            .querySelectorAll(
-              ".stage-node > .stage-children"
-            )
-            .forEach((children) => {
-              children.classList.remove(
-                "is-open"
-              );
-            });
-
-          treeContainer
-            .querySelectorAll(
-              ".expand-button"
-            )
-            .forEach((button) => {
-              button.setAttribute(
-                "aria-expanded",
-                "false"
-              );
-            });
-
+      const searchResult = target.closest(".search-result");
+      if (searchResult instanceof HTMLElement) {
+        const type = searchResult.dataset.type;
+        if (type !== "stage" && type !== "substage" && type !== "activity") {
+          return;
         }
-      );
-    }
-
-
-    /*
-     * Stage click.
-     */
-    treeContainer
-      .querySelectorAll(".stage-row")
-      .forEach((row) => {
-
-        row.addEventListener(
-          "click",
-          (event) => {
-
-            /*
-             * Don't trigger stage selection
-             * when clicking the expand button
-             * or Explore button.
-             */
-            if (
-              event.target.closest(
-                ".expand-button"
-              ) ||
-              event.target.closest(
-                ".stage-explore-button"
-              )
-            ) {
-              return;
-            }
-
-            const stageNode =
-              row.closest(".stage-node");
-
-            const stageId =
-              stageNode?.dataset.stageId;
-
-            selectedStageId = stageId || null;
-            selectedActivityId = null;
-
-            treeContainer.dispatchEvent(
-              new CustomEvent(
-                "stage-selected",
-                {
-                  bubbles: true,
-                  detail: {
-                    stageId,
-                  },
-                }
-              )
-            );
-
-          }
+        focusItem(
+          type,
+          searchResult.dataset.id,
+          searchResult.querySelector(".search-result-name")?.textContent?.trim() || ""
         );
+        updateSearchView();
+        return;
+      }
 
-      });
+      const retryButton = target.closest("#retryTree");
+      if (retryButton) {
+        void loadTree();
+        return;
+      }
 
-
-    /*
-     * Activity click.
-     */
-    treeContainer
-      .querySelectorAll(
-        ".activity-item"
-      )
-      .forEach((item) => {
-
-        item.addEventListener(
-          "click",
-          () => {
-
-            const activityId =
-              item.dataset.id;
-
-            selectedActivityId = activityId || null;
-            selectedStageId = null;
-
-            treeContainer.dispatchEvent(
-              new CustomEvent(
-                "activity-selected",
-                {
-                  bubbles: true,
-                  detail: {
-                    activityId,
-                  },
-                }
-              )
-            );
-
-          }
+      const expandButton = target.closest(".expand-button");
+      if (expandButton) {
+        const stageNode = expandButton.closest(".stage-node");
+        setStageExpanded(
+          stageNode,
+          expandButton.getAttribute("aria-expanded") !== "true"
         );
+        return;
+      }
 
-      });
+      const stageRow = target.closest(".stage-row");
+      if (stageRow instanceof HTMLElement) {
+        selectStageRow(stageRow);
+        return;
+      }
 
+      const activityItem = target.closest(".activity-item");
+      if (activityItem instanceof HTMLElement) selectActivity(activityItem);
+    });
+
+    treeSection.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target || target.closest(".expand-button")) return;
+
+      const stageRow = target.closest(".stage-row");
+      const activityItem = target.closest(".activity-item");
+      if (!(stageRow instanceof HTMLElement) && !(activityItem instanceof HTMLElement)) {
+        return;
+      }
+
+      event.preventDefault();
+      if (stageRow instanceof HTMLElement) selectStageRow(stageRow);
+      else if (activityItem instanceof HTMLElement) selectActivity(activityItem);
+    });
   }
 
 
@@ -953,56 +1376,50 @@ const {
    */
 
   function showLoading() {
-    treeContainer.innerHTML = `
-      <div class="tree-loading">
-
-        <span class="spinner"></span>
-
-        <span>
-          Loading project structure...
-        </span>
-
+    treeContent.innerHTML = `
+      ${renderSearchBar()}
+      <div class="tree-scroll-area tree-state-area">
+        <div class="tree-loading">
+          <span class="spinner"></span>
+          <span>Loading project structure...</span>
+        </div>
       </div>
+      <div class="search-results" id="stageSearchResults" role="region" aria-label="Search results" hidden></div>
     `;
+    updateSearchView();
   }
 
 
+  /**
+   * @param {string} message
+   */
   function showError(message) {
-    treeContainer.innerHTML = `
-      <div class="tree-error">
-
+    treeContent.innerHTML = `
+      ${renderSearchBar()}
+      <div class="tree-scroll-area tree-state-area">
+        <div class="tree-error">
         <span class="material-symbols-rounded">
           error
         </span>
-
         <div>
-
           <strong>
             Unable to load project structure
           </strong>
-
           <p>
             ${escapeHTML(message)}
           </p>
-
           <button
             type="button"
             id="retryTree"
           >
             Try Again
           </button>
-
         </div>
-
+        </div>
       </div>
+      <div class="search-results" id="stageSearchResults" role="region" aria-label="Search results" hidden></div>
     `;
-
-    document
-      .getElementById("retryTree")
-      ?.addEventListener(
-        "click",
-        loadTree
-      );
+    updateSearchView();
   }
 
 
@@ -1012,13 +1429,27 @@ const {
    * ------------------------------------------------------------
    */
 
-  loadTree();
+   attachTreeEvents();
+   loadTree();
 </script>
 
 
 <style is:global>
+  .dashboard-content #stages {
+    box-sizing: border-box;
+    height: calc(
+      100vh - var(--header-height) - var(--space-xl) - var(--space-xl)
+    );
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .stage-tree {
     width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     color: var(--color-text);
     background: var(--color-background);
     border: 1px solid var(--color-border);
@@ -1026,46 +1457,277 @@ const {
     overflow: hidden;
   }
 
-  .stage-tree .tree-header {
+  .stage-tree .item-detail {
+    box-sizing: border-box;
+    flex: 0 0 40%;
+    min-height: 0;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--space-lg);
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-xs);
     padding: var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-background);
+    min-width: 0;
+  }
+
+  .stage-tree .item-detail-label {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .stage-tree .item-detail h2 {
+    margin: 0;
+    color: var(--color-text);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-semibold);
+    line-height: 1.25;
+  }
+
+  .stage-tree .item-detail > p:last-child {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .stage-tree .tree-section {
+    box-sizing: border-box;
+    flex: 0 0 60%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stage-tree .tree-content {
+    min-height: 0;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .stage-tree .tree-search {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-height: 58px;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-background);
+  }
+
+  .stage-tree .tree-scroll-area {
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .stage-tree .tree-scroll-area[hidden],
+  .stage-tree .search-results[hidden] {
+    display: none;
+  }
+
+  .stage-tree .tree-search-icon {
+    flex: 0 0 auto;
+    color: var(--color-text-muted);
+    font-size: 20px;
+  }
+
+  .stage-tree .tree-search-input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--text-sm);
+  }
+
+  .stage-tree .tree-search-input::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .stage-tree .tree-search:focus-within {
+    box-shadow: inset 0 -2px var(--color-primary);
+  }
+
+  .stage-tree .tree-search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .stage-tree .tree-search-clear:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .stage-tree .tree-search-clear[hidden] {
+    display: none;
+  }
+
+  .stage-tree .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .stage-tree .search-results {
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .stage-tree .search-result-item {
     border-bottom: 1px solid var(--color-border);
   }
 
-  .stage-tree .tree-header h3 {
-    margin: 0;
-    font-size: var(--text-lg);
-    font-weight: var(--weight-semibold);
-    color: var(--color-text);
-  }
-
-  .stage-tree .tree-header p {
-    margin: var(--space-xs) 0 0;
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-  }
-
-  .stage-tree .tree-actions {
+  .stage-tree .search-result-row {
     display: flex;
-    gap: var(--space-sm);
+    align-items: stretch;
   }
 
-  .stage-tree .tree-action {
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
+  .stage-tree .search-result {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: 0;
+    background: transparent;
     color: var(--color-text);
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+
+  .stage-tree .search-result-expand {
+    width: 40px;
+    flex: 0 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .stage-tree .search-result-expand:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .stage-tree .search-result-expand .material-symbols-rounded {
+    font-size: 20px;
+    transition: transform 0.18s ease;
+  }
+
+  .stage-tree .search-result-expand[aria-expanded="true"]
+    .material-symbols-rounded {
+    transform: rotate(90deg);
+  }
+
+  .stage-tree .search-result-children {
+    margin-left: var(--space-lg);
+    border-left: 1px solid var(--color-border);
+  }
+
+  .stage-tree .search-result:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .stage-tree .search-result.is-focused {
+    background: var(--color-surface-hover);
+    box-shadow: inset 3px 0 var(--color-primary);
+  }
+
+  .stage-tree .search-result:focus-visible,
+  .stage-tree .search-result-expand:focus-visible,
+  .stage-tree .tree-search-clear:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+
+  .stage-tree .search-result-main,
+  .stage-tree .search-result-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+  }
+
+  .stage-tree .search-result-main {
+    flex-wrap: wrap;
+  }
+
+  .stage-tree .search-result-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .stage-tree .search-result-type,
+  .stage-tree .search-result-path {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+  }
+
+  .stage-tree .search-result-type {
+    flex: 0 0 auto;
+  }
+
+  .stage-tree .search-result-path {
+    flex-basis: 100%;
+  }
+
+  .stage-tree .search-state {
+    padding: var(--space-lg);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .stage-tree .search-state button {
+    border: 0;
     border-radius: var(--radius-lg);
     padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-xs);
+    background: var(--color-primary);
+    color: white;
     cursor: pointer;
-    transition: var(--transition);
   }
 
-  .stage-tree .tree-action:hover {
-    background: var(--color-surface-hover);
+  .stage-tree .tree-state-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stage-tree .tree-state-area .tree-loading,
+  .stage-tree .tree-state-area .tree-error {
+    min-height: 0;
   }
 
   .stage-tree .tree-list {
@@ -1089,6 +1751,18 @@ const {
 
   .stage-tree .stage-row:hover {
     background: var(--color-surface-hover);
+  }
+
+  .stage-tree .stage-row.is-focused,
+  .stage-tree .activity-item.is-focused {
+    background: var(--color-surface-hover);
+    box-shadow: inset 3px 0 var(--color-primary);
+  }
+
+  .stage-tree .stage-row:focus-visible,
+  .stage-tree .activity-item:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
   }
 
   .stage-tree .expand-button {
@@ -1249,30 +1923,6 @@ const {
     transition: width 0.25s ease;
   }
 
-  .stage-tree .stage-explore-button {
-    flex: 0 0 auto;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-text);
-    border-radius: var(--radius-lg);
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-xs);
-    cursor: pointer;
-    transition: var(--transition);
-  }
-
-  .stage-tree .stage-explore-button:hover {
-    background: var(--color-surface-hover);
-  }
-
-  .stage-tree .stage-details {
-    padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-    font-size: var(--text-sm);
-  }
-
   /*
    * Children
    */
@@ -1372,7 +2022,7 @@ const {
    */
 
   .stage-tree .empty-state {
-    min-height: 220px;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1445,17 +2095,26 @@ const {
 
   @media (max-width: 700px) {
 
-    .stage-tree .tree-header {
-      align-items: flex-start;
-      flex-direction: column;
+    .dashboard-content #stages {
+      height: calc(
+        100vh - var(--header-height) - var(--space-base) - var(--space-base)
+      );
     }
 
-    .stage-tree .tree-actions {
-      width: 100%;
+    .stage-tree {
+      height: 100%;
     }
 
-    .stage-tree .tree-action {
-      flex: 1;
+    .stage-tree .item-detail {
+      padding: var(--space-md);
+    }
+
+    .stage-tree .item-detail h2 {
+      font-size: var(--text-xl);
+    }
+
+    .stage-tree .tree-search {
+      padding: var(--space-sm) var(--space-md);
     }
 
     .stage-tree .stage-progress-container {
@@ -1481,6 +2140,32 @@ const {
     .stage-tree .stage-name,
     .stage-tree .item-name {
       max-width: 190px;
+    }
+
+    .stage-tree .search-result {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .stage-tree .search-result-row .search-result {
+      align-items: flex-start;
+    }
+
+    .stage-tree .search-result-meta {
+      padding-left: var(--space-sm);
+    }
+
+    .stage-tree .search-result-children {
+      margin-left: var(--space-md);
+    }
+  }
+
+  @media (min-width: 701px) and (max-width: 1024px) {
+    .dashboard-content #stages {
+      height: calc(
+        100vh - var(--header-height) - var(--space-md) - var(--space-md)
+      );
     }
   }
 </style>

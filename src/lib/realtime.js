@@ -102,7 +102,12 @@ async function openConnection() {
   ticketRequest = controller;
 
   try {
-    const { apiBaseUrl, getAuthHeaders, onUnauthorized } = connectionOptions;
+    const {
+      apiBaseUrl,
+      getAuthHeaders,
+      onUnauthorized,
+      onAccessChanged,
+    } = connectionOptions;
     const response = await fetch(`${apiBaseUrl}/events/ticket`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -117,8 +122,12 @@ async function openConnection() {
     }
 
     if (response.status === 403) {
+      const body = await response.json().catch(() => null);
       stopped = true;
-      console.error("Real-time updates are not authorised for this account.");
+      console.error(
+        body?.message || "Real-time updates are not authorised for this account.",
+        body?.code ? { code: body.code } : undefined
+      );
       return;
     }
 
@@ -169,6 +178,7 @@ async function openConnection() {
     });
 
     source.addEventListener("auth.expired", () => {
+      onAccessChanged?.();
       closeEventSource();
       scheduleReconnect();
     });
@@ -201,9 +211,15 @@ export function connectToDatabaseEvents({
   apiBaseUrl,
   getAuthHeaders,
   onUnauthorized,
+  onAccessChanged,
 }) {
   if (!connectionOptions) {
-    connectionOptions = { apiBaseUrl, getAuthHeaders, onUnauthorized };
+    connectionOptions = {
+      apiBaseUrl,
+      getAuthHeaders,
+      onUnauthorized,
+      onAccessChanged,
+    };
   }
 
   if (connectionOptions.apiBaseUrl !== apiBaseUrl) {

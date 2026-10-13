@@ -1,0 +1,401 @@
+---
+const {
+  projectId = "",
+  label = "Generate Status Report",
+  reportType = "Project Status",
+  disabled = false,
+  class: className = "",
+} = Astro.props;
+---
+
+<section
+  class:list={["project-report-generator", className]}
+  data-project-id={projectId}
+  data-report-type={reportType}
+  data-locked={disabled ? "true" : "false"}
+>
+  <button class="btn btn-primary report-generate" type="button" disabled={disabled || !projectId}>
+    <span class="material-symbols-rounded" aria-hidden="true">description</span>
+    <span class="report-button-label">{label}</span>
+  </button>
+  <p class="report-message" role="status" aria-live="polite" hidden></p>
+  <button class="btn btn-secondary report-download" type="button" hidden>
+    <span class="material-symbols-rounded" aria-hidden="true">download</span>
+    Download PDF
+  </button>
+  <details class="report-preview" hidden>
+    <summary>View report preview</summary>
+    <div class="report-preview-content"></div>
+  </details>
+  <section class="report-history" hidden>
+    <h3>Previously generated reports</h3>
+    <ul class="report-history-list"></ul>
+  </section>
+</section>
+
+<script>
+  import { getAuthHeaders } from "../../lib/auth.js";
+  import { buildApiUrl } from "../../lib/config.js";
+
+  const initialized = new WeakSet();
+
+  function setupReportButtons() {
+    document.querySelectorAll<HTMLElement>(".project-report-generator").forEach((component) => {
+      if (initialized.has(component)) return;
+      initialized.add(component);
+
+      const button = component.querySelector<HTMLButtonElement>(".report-generate");
+      const buttonLabel = component.querySelector<HTMLSpanElement>(".report-button-label");
+      const message = component.querySelector<HTMLParagraphElement>(".report-message");
+      const download = component.querySelector<HTMLButtonElement>(".report-download");
+      const preview = component.querySelector<HTMLDetailsElement>(".report-preview");
+      const previewContent = component.querySelector<HTMLDivElement>(".report-preview-content");
+      const history = component.querySelector<HTMLElement>(".report-history");
+      const historyList = component.querySelector<HTMLUListElement>(".report-history-list");
+      if (
+        !button ||
+        !buttonLabel ||
+        !message ||
+        !download ||
+        !preview ||
+        !previewContent ||
+        !history ||
+        !historyList
+      ) {
+        console.error("Project status report component markup is incomplete.");
+        return;
+      }
+      const originalLabel = buttonLabel.textContent || "Generate Status Report";
+      let downloadUrl = "";
+      let downloadName = "project-status-report.pdf";
+      let objectUrl = "";
+
+      const setMessage = (text = "", state = "progress") => {
+        message.textContent = text;
+        message.dataset.state = state;
+        message.hidden = !text;
+      };
+
+      const renderPreview = (data = JSON.parse("{}")) => {
+        previewContent.replaceChildren();
+        const headings = [
+          ["Executive summary", "executiveSummary"],
+          ["Overall project status", "overallStatus"],
+          ["Programme performance", "programmePerformance"],
+          ["Achievements", "achievements"],
+          ["Stage progress", "stageCommentary"],
+          ["Delays and risks", "delaysRisks"],
+          ["Outstanding queries", "queriesApprovals"],
+          ["Corrective actions", "correctiveActions"],
+          ["Next-period priorities", "nextPeriodPriorities"],
+        ];
+        for (const [heading, key] of headings) {
+          if (!data.sections?.[key]) continue;
+          const section = document.createElement("section");
+          const title = document.createElement("h4");
+          const paragraph = document.createElement("p");
+          title.textContent = heading;
+          paragraph.textContent = data.sections[key];
+          section.append(title, paragraph);
+          previewContent.append(section);
+        }
+        if (Array.isArray(data.warnings) && data.warnings.length) {
+          const notes = document.createElement("section");
+          const title = document.createElement("h4");
+          const list = document.createElement("ul");
+          title.textContent = "Data limitations and review notes";
+          for (const warning of data.warnings.slice(0, 8)) {
+            const item = document.createElement("li");
+            item.textContent = warning;
+            list.append(item);
+          }
+          notes.append(title, list);
+          previewContent.append(notes);
+        }
+        preview.hidden = previewContent.childElementCount === 0;
+      };
+
+      const downloadReport = async (url = "", filename = "") => {
+        const response = await fetch(buildApiUrl(url), {
+          headers: getAuthHeaders(),
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.message || "The report file could not be downloaded.");
+        }
+        const pdf = await response.blob();
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(pdf);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = filename;
+        link.click();
+      };
+
+      const loadHistory = async () => {
+        const projectId = component.dataset.projectId;
+        historyList.replaceChildren();
+        history.hidden = true;
+        if (!projectId) return;
+        const response = await fetch(
+          buildApiUrl(`/projects/${encodeURIComponent(projectId)}/reports`),
+          { headers: getAuthHeaders(), cache: "no-store" }
+        );
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.message || "Previously generated reports could not be loaded.");
+        }
+        for (const report of result.data || []) {
+          if (!["Generated", "Approved", "Under Review", "Superseded"].includes(report.status)) continue;
+          const item = document.createElement("li");
+          const label = document.createElement("span");
+          const previewButton = document.createElement("button");
+          const downloadButton = document.createElement("button");
+          label.textContent = `${report.reportNumber} - ${report.title} (${new Date(report.reportingCutoff).toLocaleDateString()})`;
+          previewButton.type = "button";
+          previewButton.textContent = "Preview";
+          downloadButton.type = "button";
+          downloadButton.textContent = "Download PDF";
+          previewButton.addEventListener("click", async () => {
+            previewButton.disabled = true;
+            try {
+              const previewResponse = await fetch(
+                buildApiUrl(`/projects/${encodeURIComponent(projectId)}/reports/${encodeURIComponent(report.id)}`),
+                { headers: getAuthHeaders(), cache: "no-store" }
+              );
+              const previewResult = await previewResponse.json().catch(() => null);
+              if (!previewResponse.ok || !previewResult?.success) {
+                throw new Error(previewResult?.message || "The report preview could not be loaded.");
+              }
+              renderPreview(previewResult.data);
+              setMessage(`Previewing ${report.reportNumber}.`, "success");
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : "The report preview could not be loaded.", "error");
+            } finally {
+              previewButton.disabled = false;
+            }
+          });
+          downloadButton.addEventListener("click", async () => {
+            downloadButton.disabled = true;
+            try {
+              await downloadReport(report.downloadUrl, `${report.reportNumber}.pdf`);
+              setMessage(`Your ${report.reportNumber} download has started.`, "success");
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : "The report could not be downloaded.", "error");
+            } finally {
+              downloadButton.disabled = false;
+            }
+          });
+          item.append(label, previewButton, downloadButton);
+          historyList.append(item);
+        }
+        history.hidden = historyList.childElementCount === 0;
+      };
+
+      if (component.dataset.projectId) {
+        loadHistory().catch((error) => {
+          setMessage(error instanceof Error ? error.message : "Report history could not be loaded.", "error");
+        });
+      } else {
+        setMessage("A project ID was not provided to this report component.", "error");
+      }
+
+      button.addEventListener("click", async () => {
+        const projectId = component.dataset.projectId?.trim();
+        if (!projectId) {
+          setMessage("A project ID was not provided to this report component.", "error");
+          return;
+        }
+
+        button.disabled = true;
+        download.hidden = true;
+        preview.hidden = true;
+        previewContent.replaceChildren();
+        setMessage("Retrieving project records and calculating report indicators...", "progress");
+        buttonLabel.textContent = "Generating report...";
+
+        try {
+          const response = await fetch(
+            buildApiUrl(`/projects/${encodeURIComponent(projectId)}/reports/status`),
+            {
+              method: "POST",
+              headers: {
+                ...getAuthHeaders(),
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ reportType: component.dataset.reportType || "Project Status" }),
+              cache: "no-store",
+            }
+          );
+          const result = await response.json().catch(() => null);
+          if (!response.ok || !result?.success || !result?.data?.id) {
+            const retryAfterSeconds = Number(response.headers.get("Retry-After"));
+            const retryMessage =
+              response.status === 429 && Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+                ? ` Try again in about ${Math.ceil(retryAfterSeconds / 60)} minute${Math.ceil(retryAfterSeconds / 60) === 1 ? "" : "s"}.`
+                : "";
+            const failureCode =
+              response.status === 403 && result?.code ? ` (${result.code})` : "";
+            throw new Error(
+              `${result?.message || `The report request failed with HTTP ${response.status}.`}${failureCode}${retryMessage}`
+            );
+          }
+
+          downloadUrl = result.data.downloadUrl;
+          downloadName = `${result.data.reportNumber || "project-status-report"}.pdf`;
+          setMessage(
+            `Report ${result.data.reportNumber} generated successfully${result.data.ai?.generated ? " with AI narrative" : " using a verified-data narrative"}.`,
+            "success"
+          );
+          download.hidden = !downloadUrl;
+          renderPreview(result.data);
+          await loadHistory().catch((error) => {
+            console.warn("Report generated but report history could not be refreshed.", error);
+          });
+        } catch (error) {
+          const messageText =
+            error instanceof TypeError
+              ? "Could not reach the report API. Check that the backend and ngrok tunnel are running and that the frontend origin is allowed by backend CORS."
+              : error instanceof Error
+                ? error.message
+                : "The report could not be generated. Please try again.";
+          setMessage(
+            messageText,
+            "error"
+          );
+        } finally {
+          button.disabled =
+            component.dataset.locked === "true" || !component.dataset.projectId;
+          buttonLabel.textContent = originalLabel;
+        }
+      });
+
+      download.addEventListener("click", async () => {
+        if (!downloadUrl) return;
+        download.disabled = true;
+        setMessage("Preparing the secure report download...", "progress");
+        try {
+          await downloadReport(downloadUrl, downloadName);
+          setMessage("Your report download has started.", "success");
+        } catch (error) {
+          setMessage(
+            error instanceof Error
+              ? error.message
+              : "The report file could not be downloaded.",
+            "error"
+          );
+        } finally {
+          download.disabled = false;
+        }
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupReportButtons, { once: true });
+  } else {
+    setupReportButtons();
+  }
+</script>
+
+<style>
+  .project-report-generator {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .report-message {
+    flex: 1 1 100%;
+    margin: 0;
+    font-size: var(--text-sm, 0.875rem);
+  }
+
+  .report-message[data-state="progress"] {
+    color: var(--color-text-secondary, #475569);
+  }
+
+  .report-message[data-state="success"] {
+    color: var(--color-success, #059669);
+  }
+
+  .report-message[data-state="error"] {
+    color: var(--color-error, #dc2626);
+  }
+
+  .report-preview {
+    flex: 1 1 100%;
+    color: var(--color-text, #1e293b);
+  }
+
+  .report-preview summary {
+    width: fit-content;
+    color: var(--color-primary, #0056b8);
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .report-preview-content {
+    display: grid;
+    gap: 0.8rem;
+    max-width: 60rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: var(--radius-md, 0.5rem);
+    background: var(--color-surface, #f8fafc);
+  }
+
+  .report-preview-content h4 {
+    margin-bottom: 0.2rem;
+    font-size: 0.95rem;
+  }
+
+  .report-preview-content p {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .report-history {
+    flex: 1 1 100%;
+  }
+
+  .report-history h3 {
+    margin: 0 0 0.5rem;
+    font-size: var(--text-lg, 1.125rem);
+  }
+
+  .report-history-list {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .report-history-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: var(--radius-md, 0.5rem);
+  }
+
+  .report-history-list li span {
+    flex: 1 1 20rem;
+  }
+
+  .report-history-list button {
+    color: var(--color-primary, #0056b8);
+    font-size: var(--text-sm, 0.875rem);
+    font-weight: 600;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>

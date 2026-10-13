@@ -6,6 +6,7 @@ import StageForm from "./forms/StageForm.astro";
 import MilestoneForm from "./forms/MilestoneForm.astro";
 import ProgramRivisionForm from "./forms/ProgramRivisionForm.astro";
 import FileUploadForm from "./forms/FileUploadForm.astro";
+import ProjectStatusReportButton from "./reports/ProjectStatusReportButton.astro";
 import { API_BASE_URL, buildApiUrl, withBase } from "../lib/config";
 
 const projectId = "6aa81933b3f5dd584c234f38";
@@ -109,6 +110,20 @@ const {
 
           <span class="nav-label">
             Edit Data
+          </span>
+        </a>
+
+        <a
+          href="#"
+          class="dashboard-nav-item"
+          data-view="reports"
+        >
+          <span class="nav-icon material-symbols-rounded">
+            description
+          </span>
+
+          <span class="nav-label">
+            Reports
           </span>
         </a>
 
@@ -453,7 +468,7 @@ const {
 
       </div>
 
-      <!-- Reports View -->
+      <!-- Team Members View -->
 
       <div
         class="dashboard-view"
@@ -482,6 +497,25 @@ const {
 
         </div>
 
+      </div>
+
+      <!-- Reports View -->
+
+      <div class="dashboard-view" id="reports">
+        <section class="reports-page">
+          <div class="reports-page-heading">
+            <span class="material-symbols-rounded" aria-hidden="true">summarize</span>
+            <div>
+              <h2>Project status reports</h2>
+              <p>Generate a dated report from the current project records and approved programme information.</p>
+            </div>
+          </div>
+          <ProjectStatusReportButton
+            projectId={projectId}
+            label="Generate Status Report"
+            reportType="Comprehensive Project Status"
+          />
+        </section>
       </div>
 
       <!-- Settings View -->
@@ -551,6 +585,39 @@ const {
 </div>
 
 <style>
+
+.reports-page {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 70rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  margin: 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  box-shadow: var(--shadow-sm);
+}
+
+.reports-page-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.reports-page-heading > .material-symbols-rounded {
+  color: var(--color-primary);
+  font-size: 2rem;
+}
+
+.reports-page-heading h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.reports-page-heading p {
+  margin-top: 0.35rem;
+  color: var(--color-text-secondary);
+}
 
 /* ===================================
    AUTHENTICATION GUARD
@@ -1826,6 +1893,55 @@ const {
     return true;
   }
 
+  async function refreshCurrentUserProfile() {
+    try {
+      const response = await fetch(buildApiUrl("/auth/me"), {
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      });
+      if (response.status === 401) {
+        logout();
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(`Current account request failed: ${response.status}`);
+      }
+      const result = await response.json();
+      if (!result?.success || !result.user) {
+        throw new Error("Current account response has an invalid format.");
+      }
+
+      const user = result.user;
+      const storage = localStorage.getItem("token") ? localStorage : sessionStorage;
+      storage.setItem("user", JSON.stringify(user));
+      if (user.organisation) {
+        storage.setItem(
+          "organisation",
+          JSON.stringify({ _id: user.organisation })
+        );
+      } else {
+        storage.removeItem("organisation");
+      }
+
+      if (userProfileName) {
+        userProfileName.textContent =
+          [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+          user.email ||
+          "User";
+      }
+      if (userProfileRole) userProfileRole.textContent = user.role || "Viewer";
+      if (userProfileEmail) userProfileEmail.textContent = user.email || "";
+      if (userAvatarInitials) {
+        userAvatarInitials.textContent =
+          `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`
+            .trim()
+            .toUpperCase() || "U";
+      }
+    } catch (error) {
+      console.error("Unable to refresh the current account profile:", error);
+    }
+  }
+
 
 
   // ===================================
@@ -1862,11 +1978,13 @@ const {
   } else {
 
     startIdleLogout();
+    void refreshCurrentUserProfile();
     initSignOut();
     const stopDatabaseEvents = connectToDatabaseEvents({
       apiBaseUrl: buildApiUrl(),
       getAuthHeaders,
       onUnauthorized: logout,
+      onAccessChanged: refreshCurrentUserProfile,
     });
     const unsubscribeRealtime = subscribeToDatabaseChanges(
       (events) => {

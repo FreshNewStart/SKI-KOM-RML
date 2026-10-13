@@ -1,3 +1,9 @@
+import {
+  consumeSseResponse,
+  fetchSseResponse,
+  SseConnectionError,
+} from "./sseClient.js";
+
 const RECONNECT_START_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
 const EVENT_BATCH_MS = 120;
@@ -7,8 +13,8 @@ const subscribers = new Set();
 const pendingEvents = new Map();
 
 let connectionOptions;
-let eventSource;
 let ticketRequest;
+let streamRequest;
 let retryTimer;
 let batchTimer;
 let retryDelay = RECONNECT_START_MS;
@@ -80,9 +86,9 @@ function queueEvent(event) {
   }
 }
 
-function closeEventSource() {
-  eventSource?.close();
-  eventSource = undefined;
+function closeEventStream() {
+  streamRequest?.abort();
+  streamRequest = undefined;
 }
 
 function scheduleReconnect() {
@@ -96,7 +102,7 @@ function scheduleReconnect() {
 }
 
 async function openConnection() {
-  if (stopped || connecting || eventSource) return;
+  if (stopped || connecting || streamRequest) return;
   connecting = true;
   const controller = new AbortController();
   ticketRequest = controller;
@@ -152,57 +158,91 @@ async function openConnection() {
 
     const streamUrl = new URL(`${apiBaseUrl}/events/stream`);
     streamUrl.searchParams.set("ticket", result.ticket);
-    const source = new EventSource(streamUrl);
-    eventSource = source;
-
-    source.addEventListener("ready", () => {
-      retryDelay = RECONNECT_START_MS;
-      queueEvent({
-        version: 1,
-        type: "connection.ready",
-        requiresRefetch: true,
-      });
+    const streamController = new AbortController();
+    streamRequest = streamController;
+    const streamResponse = await fetchSseResponse(streamUrl, {
+      signal: streamController.signal,
     });
 
-    source.addEventListener("database-change", (message) => {
-      try {
-        const event = JSON.parse(message.data);
-        if (event?.version === 1 && typeof event.type === "string") {
-          queueEvent(event);
-        } else {
-          console.error("Received an unsupported real-time event format.");
-        }
-      } catch (error) {
-        console.error("Unable to parse real-time update:", error);
+    await consumeSseResponse(streamResponse, (message) => {
+      if (message.type === "ready") {
+        retryDelay = RECONNECT_START_MS;
+        queueEvent({
+          version: 1,
+          type: "connection.ready",
+          requiresRefetch: true,
+        });
+        return;
       }
-    });
-
-    source.addEventListener("auth.expired", () => {
-      onAccessChanged?.();
-      closeEventSource();
-      scheduleReconnect();
-    });
-
-    source.addEventListener("shutdown", () => {
-      closeEventSource();
-      scheduleReconnect();
-    });
-
-    source.addEventListener("error", () => {
-      if (eventSource !== source) return;
-      closeEventSource();
-      scheduleReconnect();
+      if (message.type === "database-change") {
+        try {
+          const event = JSON.parse(message.data);
+          if (event?.version === 1 && typeof event.type === "string") {
+            queueEvent(event);
+          } else {
+            console.error("Received an unsupported real-time event format.");
+          }
+        } catch (error) {
+          console.error("Unable to parse real-time update:", error);
+        }
+        return;
+      }
+      if (message.type === "auth.expired") {
+        onAccessChanged?.();
+        closeEventStream();
+        return;
+      }
+      if (message.type === "shutdown") {
+        closeEventStream();
+      }
     });
   } catch (error) {
     if (error.name !== "AbortError" && !stopped) {
-      console.error("Unable to connect to database updates:", error);
+      if (
+        error instanceof SseConnectionError &&
+        error.status === 401 &&
+        error.code !== "INVALID_EVENT_TICKET"
+      ) {
+        stopped = true;
+        if (error.code === "ACCOUNT_INACTIVE" || error.code === "ACCOUNT_NOT_FOUND") {
+          onUnauthorized?.();
+        } else {
+          console.error("The event stream authorization was rejected.", {
+            code: error.code || "EVENT_STREAM_UNAUTHORIZED",
+          });
+        }
+        return;
+      }
+      if (error instanceof SseConnectionError && error.status === 403) {
+        stopped = true;
+        onAccessChanged?.();
+        console.error(error.message, {
+          code: error.code || "EVENT_STREAM_FORBIDDEN",
+        });
+        return;
+      }
+      if (
+        error instanceof SseConnectionError &&
+        error.ngrokErrorCode === "ERR_NGROK_6024"
+      ) {
+        console.error(error.message, { code: error.ngrokErrorCode });
+      } else {
+        console.error("Unable to connect to database updates.", {
+          name: error?.name || "Error",
+          code:
+            error instanceof SseConnectionError
+              ? error.code || "EVENT_STREAM_FAILED"
+              : "EVENT_STREAM_FAILED",
+        });
+      }
       scheduleReconnect();
     }
   } finally {
     if (ticketRequest === controller) ticketRequest = undefined;
+    streamRequest = undefined;
     connecting = false;
-    if (!stopped && !eventSource && !retryTimer) {
-      void openConnection();
+    if (!stopped && !retryTimer) {
+      scheduleReconnect();
     }
   }
 }
@@ -243,7 +283,8 @@ export function connectToDatabaseEvents({
     batchTimer = undefined;
     ticketRequest?.abort();
     ticketRequest = undefined;
-    closeEventSource();
+    closeEventStream();
+    streamRequest = undefined;
     pendingEvents.clear();
     connectionOptions = undefined;
     connectionLeases = 0;

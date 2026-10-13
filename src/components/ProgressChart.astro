@@ -74,7 +74,7 @@ const { projectId } = Astro.props;
 
         const response = await fetch(
           `${API_BASE_URL}/stages/project/${projectId}`,
-          { headers: getAuthHeaders() }
+          { headers: getAuthHeaders(), cache: "no-store" }
         );
 
 
@@ -868,7 +868,7 @@ const { projectId } = Astro.props;
       (events) => {
         if (
           events.some((event) =>
-            ["project", "stage"].includes(event.classification) ||
+            event.requiresRefetch ||
             event.type?.startsWith("connection.")
           )
         ) {

@@ -48,6 +48,7 @@ const {
     const response = await fetch(url, {
       method: "GET",
       headers: getSharedAuthHeaders(),
+      cache: "no-store",
     });
 
     const contentType =
@@ -200,7 +201,7 @@ const {
     (events) => {
       if (
         events.some((event) =>
-          ["stage", "activity", "progress"].includes(event.classification) ||
+          event.requiresRefetch ||
           event.type?.startsWith("connection.")
         )
       ) {

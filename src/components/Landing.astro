@@ -1615,7 +1615,7 @@ const {
 
       const response = await fetch(
         buildApiUrl(`/dashboard/overview/${projectId}`),
-        { headers: getAuthHeaders() }
+        { headers: getAuthHeaders(), cache: "no-store" }
       );
 
       if (response.status === 401) {
@@ -1872,12 +1872,7 @@ const {
       (events) => {
         if (
           events.some((event) =>
-            [
-              "project",
-              "stage",
-              "activity",
-              "progress",
-            ].includes(event.classification) ||
+            event.requiresRefetch ||
             event.type?.startsWith("connection.")
           )
         ) {
